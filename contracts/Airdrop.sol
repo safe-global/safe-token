@@ -39,8 +39,8 @@ contract Airdrop is VestingPool {
     ) external {
         require(root != bytes32(0), "State root not initialized");
         // Add vesting will fail if the vesting was already created
-        bytes32 vestindId = _addVesting(account, curveType, false, durationWeeks, startDate, amount);
-        require(_verify(vestindId, proof), "Invalid merkle proof");
+        bytes32 vestingId = _addVesting(account, curveType, false, durationWeeks, startDate, amount);
+        require(MerkleProof.verify(proof, root, vestingId), "Invalid merkle proof");
         require(IERC20(token).transfer(account, amount), "Could not transfer token");
     }
 
@@ -62,9 +62,5 @@ contract Airdrop is VestingPool {
         uint128
     ) public pure override {
         revert("This method is not available for this contract");
-    }
-
-    function _verify(bytes32 leaf, bytes32[] memory proof) internal view returns (bool) {
-        return MerkleProof.verify(proof, root, leaf);
     }
 }
