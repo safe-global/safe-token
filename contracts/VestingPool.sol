@@ -127,7 +127,7 @@ contract VestingPool {
     /// @dev This will trigger a transfer of tokens
     /// @param vestingId Id of the vesting from which the tokens should be claimed
     /// @param beneficiary Account that should receive the claimed tokens
-    /// @param tokensToClaim Amount of tokens to claim in atoms
+    /// @param tokensToClaim Amount of tokens to claim in atoms or max uint256 to claim all available
     function claimVestedTokens(
         bytes32 vestingId,
         address beneficiary,
@@ -138,6 +138,7 @@ contract VestingPool {
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
         uint128 availableClaim = _calculateVestedAmount(vesting) - vesting.amountClaimed;
+        // If max uint128 is used, claim all available tokens.
         uint128 claimAmount = tokensToClaim == type(uint128).max ? availableClaim : tokensToClaim;
         require(claimAmount <= availableClaim, "Trying to claim too many tokens");
         // Adjust how many tokens are locked in vesting
