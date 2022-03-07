@@ -55,8 +55,17 @@ contract VestingPool {
         poolManager = _poolManager;
     }
 
+    /// @notice Create a vesting on this pool for `account`.
+    /// @dev This can only be called by the pool manager
+    /// @dev It is required that the pool has enough tokens available
+    /// @param account The account for which the vesting is created
+    /// @param curveType Type of the curve that should be used for the vesting
+    /// @param managed Boolean that indicates if the vesting can be managed by the pool manager
+    /// @param durationWeeks The duration of the vesting in weeks
+    /// @param startDate The date when the vesting should be started (can be in the past)
+    /// @param amount Amount of tokens that should be vested in atoms
     function addVesting(
-        address target,
+        address account,
         uint8 curveType,
         bool managed,
         uint16 durationWeeks,
@@ -64,7 +73,7 @@ contract VestingPool {
         uint128 amount
     ) public onlyPoolManager {
         require(curveType < 2, "Invalid vesting curve");
-        bytes32 vestingId = vestingHash(target, curveType, managed, durationWeeks, startDate, amount);
+        bytes32 vestingId = vestingHash(account, curveType, managed, durationWeeks, startDate, amount);
         require(vestings[vestingId].account == address(0), "Vesting id already used");
         // Check that enough tokens are available for the new vesting
         uint256 availableTokens = IERC20(token).balanceOf(address(this)) - totalTokensInVesting;
@@ -72,7 +81,7 @@ contract VestingPool {
         // Mark tokens for this vesting in use
         totalTokensInVesting += amount;
         vestings[vestingId] = Vesting({
-            account: target,
+            account: account,
             curveType: curveType,
             managed: managed,
             durationWeeks: durationWeeks,
@@ -82,9 +91,15 @@ contract VestingPool {
             pausingDate: 0,
             cancelled: false
         });
-        emit AddedVesting(vestingId, target);
+        emit AddedVesting(vestingId, account);
     }
 
+    /// @notice Claim `tokensToClaim` tokens from vesting `vestingId`.
+    /// @dev This can only be called by the owner of the vesting
+    /// @dev Beneficiary cannot be the 0-address
+    /// @param vestingId Id of the vesting from which the tokens should be claimed
+    /// @param beneficiary Account that should receive the claimed tokens
+    /// @param tokensToClaim Amount of tokens to claim in atoms
     function claimVestedTokens(
         bytes32 vestingId,
         address beneficiary,
@@ -105,6 +120,10 @@ contract VestingPool {
         emit ClaimedVesting(vestingId, vesting.account, beneficiary);
     }
 
+    /// @notice Cancel vesting `vestingId`.
+    /// @dev This can only be called by the pool manager
+    /// @dev Only manageable vestings can be cancelled
+    /// @param vestingId Id of the vesting that should be canceled
     function cancelVesting(bytes32 vestingId) public onlyPoolManager {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
@@ -126,6 +145,10 @@ contract VestingPool {
         emit CanceledVesting(vestingId);
     }
 
+    /// @notice Pause vesting `vestingId`.
+    /// @dev This can only be called by the pool manager
+    /// @dev Only manageable vestings can be paused
+    /// @param vestingId Id of the vesting that should be paused
     function pauseVesting(bytes32 vestingId) public onlyPoolManager {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
@@ -137,6 +160,10 @@ contract VestingPool {
         emit PausedVesting(vestingId);
     }
 
+    /// @notice Unpause vesting `vestingId`.
+    /// @dev This can only be called by the pool manager
+    /// @dev Only vestings that have not been cancelled can beunpaused
+    /// @param vestingId Id of the vesting that should be unpaused
     function unpauseVesting(bytes32 vestingId) public onlyPoolManager {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
@@ -152,6 +179,11 @@ contract VestingPool {
         emit UnpausedVesting(vestingId);
     }
 
+    /// @notice Calculate vested and claimed token amounts for vesting `vestingId`.
+    /// @dev This will revert if the vesting has not been started yet
+    /// @param vestingId Id of the vesting for which to calculate the amounts
+    /// @return vestedAmount The amount in atoms of tokens vested
+    /// @return claimedAmount The amount in atoms of tokens claimed
     function calculateVestedAmount(bytes32 vestingId) external view returns (uint128 vestedAmount, uint128 claimedAmount) {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
@@ -159,6 +191,10 @@ contract VestingPool {
         claimedAmount = vesting.amountClaimed;
     }
 
+    /// @notice Calculate vested token amount for vesting `vesting`.
+    /// @dev This will revert if the vesting has not been started yet
+    /// @param vesting The vesting for which to calculate the amounts
+    /// @return vestedAmount The amount in atoms of tokens vested
     function _calculateVestedAmount(Vesting memory vesting) internal view returns (uint128 vestedAmount) {
         require(vesting.startDate <= block.timestamp, "Vesting not active yet");
         // Convert vesting duration to seconds
@@ -182,28 +218,49 @@ contract VestingPool {
         }
     }
 
+    /// @notice Calculate vested token amount on a linear curve.
+    /// @dev Calculate vested amount on linear curve: targetAmount * elapsedTime / totalTime
+    /// @param targetAmount Amount of tokens that is being vested
+    /// @param elapsedTime Time that has ellapsed for the vesting
+    /// @param totalTime Duration of the vesting
+    /// @return Tokens that have been vested on a linear curve
     function calculateLinear(
         uint128 targetAmount,
         uint64 elapsedTime,
         uint64 totalTime
     ) internal pure returns (uint128) {
-        // Calculate vested amount on linear curve: amount * vestedTime / duration
+        // Calculate vested amount on linear curve: targetAmount * elapsedTime / totalTime
         uint256 amount = (uint256(targetAmount) * uint256(elapsedTime)) / uint256(totalTime);
         require(amount <= type(uint128).max, "Overflow in curve calculation");
         return uint128(amount);
     }
 
+    /// @notice Calculate vested token amount on an exponential curve.
+    /// @dev Calculate vested amount on exponential curve: targetAmount * elapsedTime^2 / totalTime^2
+    /// @param targetAmount Amount of tokens that is being vested
+    /// @param elapsedTime Time that has ellapsed for the vesting
+    /// @param totalTime Duration of the vesting
+    /// @return Tokens that have been vested on an exponential curve
     function calculateExponential(
         uint128 targetAmount,
         uint64 elapsedTime,
         uint64 totalTime
     ) internal pure returns (uint128) {
-        // Calculate vested amount on exponential curve: amount * vestedTime^2 / duration^2
+        // Calculate vested amount on exponential curve: targetAmount * elapsedTime^2 / totalTime^2
         uint256 amount = (uint256(targetAmount) * uint256(elapsedTime) * uint256(elapsedTime)) / (uint256(totalTime) * uint256(totalTime));
         require(amount <= type(uint128).max, "Overflow in curve calculation");
         return uint128(amount);
     }
 
+    /// @notice Calculate the id for a vesting based on its parameters.
+    /// @dev The id is a EIP-712 based hash of the vesting.
+    /// @param account The account for which the vesting was created
+    /// @param curveType Type of the curve that is used for the vesting
+    /// @param managed Indicator if the vesting is managed by the pool manager
+    /// @param durationWeeks The duration of the vesting in weeks
+    /// @param startDate The date when the vesting started (can be in the future)
+    /// @param amount Amount of tokens that are vested in atoms
+    /// @return vestingId Id of a vesting based on its parameters
     function vestingHash(
         address account,
         uint8 curveType,
