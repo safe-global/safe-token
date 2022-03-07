@@ -76,7 +76,7 @@ describe("VestingPool - Setup", async () => {
             await expect(
                 pool.addVesting(user2.address, 0, true, 104, targetTime, vestingAmount)
             ).to.emit(pool, "AddedVesting").withArgs(vestingHash, user2.address)
-            const vestedAmount = await pool.calculateVestedAmount(vestingHash)
+            const { vestedAmount } = await pool.calculateVestedAmount(vestingHash)
             // Expected value after exactly 60 minutes
             expect(vestedAmount).to.be.gte(ethers.utils.parseUnits("11.4468864469", 18))
             // Expected value after exactly 61 minutes
@@ -111,7 +111,7 @@ describe("VestingPool - Setup", async () => {
             await expect(
                 pool.addVesting(user2.address, 1, true, 208, targetTime, vestingAmount)
             ).to.emit(pool, "AddedVesting").withArgs(vestingHash, user2.address)
-            const vestedAmount = await pool.calculateVestedAmount(vestingHash)
+            const { vestedAmount } = await pool.calculateVestedAmount(vestingHash)
             // Expected value after exactly 60 minutes
             expect(vestedAmount).to.be.gte(ethers.utils.parseUnits("0.00032757802", 18))
             // Expected value after exactly 61 minutes
@@ -138,12 +138,12 @@ describe("VestingPool - Setup", async () => {
             // Check pool state
             expect(await pool.totalTokensInVesting()).to.be.eq(vestingAmount1)
             // Check first vesting
-            const vestedAmount1 = await pool.calculateVestedAmount(vestingHash1)
+            const { vestedAmount: vestedAmount1 } = await pool.calculateVestedAmount(vestingHash1)
             // Expected value after exactly 60 minutes
             expect(vestedAmount1).to.be.gte(ethers.utils.parseUnits("0.00032757802", 18))
             // Expected value after exactly 61 minutes
             expect(vestedAmount1).to.be.lt(ethers.utils.parseUnits("0.00033858828", 18))
-            
+
             // Try to add second vesting
             const vestingAmount2 = ethers.utils.parseUnits("200000", 18)
             await expect(
@@ -161,7 +161,7 @@ describe("VestingPool - Setup", async () => {
             // Check pool state
             expect(await pool.totalTokensInVesting()).to.be.eq(vestingAmount1.add(vestingAmount2))
             // Check second vesting
-            const vestedAmount2 = await pool.calculateVestedAmount(vestingHash2)
+            const { vestedAmount: vestedAmount2 } = await pool.calculateVestedAmount(vestingHash2)
             // Expected value after exactly 60 minutes
             expect(vestedAmount2).to.be.gte(ethers.utils.parseUnits("11.4468864469", 18))
             // Expected value after exactly 61 minutes

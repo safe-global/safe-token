@@ -5,40 +5,50 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title Vesting contract for multiple accounts
 /// @author Richard Meissner - @rmeissner
 contract VestingPool {
-    address public token;
-    address public poolManager;
+    event AddedVesting(bytes32 indexed id, address indexed account);
+    event ClaimedVesting(bytes32 indexed id, address indexed account, address indexed benficor);
+    event PausedVesting(bytes32 indexed id);
+    event UnpausedVesting(bytes32 indexed id);
+    event CanceledVesting(bytes32 indexed id);
+
+    // Sane limits based on: https://eips.ethereum.org/EIPS/eip-1985
+    // amountClaimed should always be equal or less than amount
+    // pausingDate should always be equal or greater than startDate
+    struct Vesting {
+        // First storage slot
+        address account; // 20 bytes
+        uint8 curveType; // 1 byte -> Max 256 different curve types
+        bool managed; // 1 byte
+        uint16 durationWeeks; // 2 bytes -> Max 65536 weeks ~ 1260 years
+        uint64 startDate; // 8 bytes -> Works until year 292278994, but not before 1970
+        // Second storage slot
+        uint128 amount; // 16 bytes -> Max 3.4e20 tokens (including decimals)
+        uint128 amountClaimed; // 16 bytes -> Max 3.4e20 tokens (including decimals)
+        // Third storage slot
+        uint64 pausingDate; // 8 bytes -> Works until year 292278994, but not before 1970
+        bool cancelled; // 1 byte
+    }
+
+    // keccak256(
+    //     "EIP712Domain(uint256 chainId,address verifyingContract)"
+    // );
+    bytes32 private constant DOMAIN_SEPARATOR_TYPEHASH = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+
+    // keccak256(
+    //     "Vesting(address account,uint8 curveType,bool managed,uint16 durationWeeks,uint64 startDate,uint128 amount)"
+    // );
+    bytes32 private constant VESTING_TYPEHASH = 0x43838b5ce9ca440d1ac21b07179a1fdd88aa2175e5ea103f6e37aa6d18ce78ad;
+
+    address public immutable token;
+    address public immutable poolManager;
+
+    uint256 public totalTokensInVesting;
+    mapping(bytes32 => Vesting) public vestings;
 
     modifier onlyPoolManager() {
         require(msg.sender == poolManager, "Can only be called by pool manager");
         _;
     }
-
-    // TODO: calculate max amounts
-    // Sane limits based on: https://eips.ethereum.org/EIPS/eip-1985
-    struct Vesting {
-        // First storage slot
-        address account; // 20 bytes
-        // TODO: enum?
-        uint8 curveType; // 1 byte
-        bool managed; // 1 byte
-        uint16 durationWeeks; // 2 bytes
-        uint64 startDate; // 8 bytes
-        // Second storage slot
-        uint128 amount; // 16 bytes
-        uint128 amountClaimed; // 16 bytes
-        // Third storage slot
-        // TODO: separate mapping?
-        uint64 pausingDate; // 8 bytes
-        bool cancelled; // 1 byte
-    }
-
-    uint256 public totalTokensInVesting;
-    mapping(bytes32 => Vesting) public vestings;
-
-    event AddedVesting(bytes32 indexed id, address indexed account);
-    event PausedVesting(bytes32 indexed id);
-    event UnpausedVesting(bytes32 indexed id);
-    event CanceledVesting(bytes32 indexed id);
 
     constructor(address _token, address _poolManager) {
         token = _token;
@@ -75,7 +85,7 @@ contract VestingPool {
         emit AddedVesting(vestingId, target);
     }
 
-    function claimAvailableVesting(
+    function claimVestedTokens(
         bytes32 vestingId,
         address beneficor,
         uint128 tokensToClaim
@@ -84,15 +94,15 @@ contract VestingPool {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
-        uint128 availableClaim = calculateVestedAmount(vestingId) - vesting.amountClaimed;
+        uint128 availableClaim = _calculateVestedAmount(vesting) - vesting.amountClaimed;
         uint128 claimAmount = tokensToClaim == type(uint128).max ? availableClaim : tokensToClaim;
         require(claimAmount <= availableClaim, "Trying to claim too many tokens");
         // Adjust how many tokens are locked in vesting
         totalTokensInVesting -= claimAmount;
         vesting.amountClaimed += claimAmount;
         vestings[vestingId] = vesting;
-        require(IERC20(token).transferFrom(address(this), beneficor, claimAmount), "Token transfer failed");
-        // TODO: emit event
+        require(IERC20(token).transfer(beneficor, claimAmount), "Token transfer failed");
+        emit ClaimedVesting(vestingId, vesting.account, beneficor);
     }
 
     function cancelVesting(bytes32 vestingId) public onlyPoolManager {
@@ -100,18 +110,15 @@ contract VestingPool {
         require(vesting.account != address(0), "Vesting not found");
         require(vesting.managed, "Only managed vestings can be cancelled");
         require(!vesting.cancelled, "Vesting already cancelled");
+        bool isFutureVesting = block.timestamp <= vesting.startDate;
         // If vesting is not already paused it will be paused
-        // TODO: refactor
+        // Pausing date should not be reset else tokens of the initial pause can be claimed
         if (vesting.pausingDate == 0) {
             // pausingDate should always be larger or equal to startDate
-            if (block.timestamp >= vesting.startDate) {
-                vesting.pausingDate = uint64(block.timestamp);
-            } else {
-                vesting.pausingDate = vesting.startDate;
-            }
+            vesting.pausingDate = isFutureVesting ? vesting.startDate : uint64(block.timestamp);
         }
         // Vesting is cancelled, therefore tokens that are not vested yet, will be added back to the pool
-        uint128 unusedToken = block.timestamp <= vesting.startDate ? vesting.amount : vesting.amount - calculateVestedAmount(vestingId);
+        uint128 unusedToken = isFutureVesting ? vesting.amount : vesting.amount - _calculateVestedAmount(vesting);
         totalTokensInVesting -= unusedToken;
         // Vesting is set to cancelled and therefore disallows unpausing
         vesting.cancelled = true;
@@ -125,11 +132,7 @@ contract VestingPool {
         require(vesting.managed, "Only managed vestings can be paused");
         require(vesting.pausingDate == 0, "Vesting already paused");
         // pausingDate should always be larger or equal to startDate
-        if (block.timestamp >= vesting.startDate) {
-            vesting.pausingDate = uint64(block.timestamp);
-        } else {
-            vesting.pausingDate = vesting.startDate;
-        }
+        vesting.pausingDate = block.timestamp <= vesting.startDate ? vesting.startDate : uint64(block.timestamp);
         vestings[vestingId] = vesting;
         emit PausedVesting(vestingId);
     }
@@ -140,7 +143,7 @@ contract VestingPool {
         require(vesting.pausingDate != 0, "Vesting is not paused");
         require(!vesting.cancelled, "Vesting has been cancelled and cannot be unpaused");
         // Calculate the time the vesting was paused
-        // If vesting has not started yet, then pausing Date might be in the future
+        // If vesting has not started yet, then pausing date might be in the future
         uint64 timePaused = block.timestamp <= vesting.pausingDate ? 0 : uint64(block.timestamp) - vesting.pausingDate;
         // Offset the start date to create the effect of pausing
         vesting.startDate = vesting.startDate + timePaused;
@@ -149,10 +152,14 @@ contract VestingPool {
         emit UnpausedVesting(vestingId);
     }
 
-    function calculateVestedAmount(bytes32 vestingId) public view returns (uint128 vestedAmount) {
-        // TODO: create internal method to pass memory vesting to
+    function calculateVestedAmount(bytes32 vestingId) external view returns (uint128 vestedAmount, uint128 claimedAmount) {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
+        vestedAmount = _calculateVestedAmount(vesting);
+        claimedAmount = vesting.amountClaimed;
+    }
+
+    function _calculateVestedAmount(Vesting memory vesting) internal view returns (uint128 vestedAmount) {
         require(vesting.startDate <= block.timestamp, "Vesting not active yet");
         // Convert vesting duration to seconds
         uint64 durationSeconds = uint64(vesting.durationWeeks) * 7 * 24 * 60 * 60;
@@ -170,6 +177,7 @@ contract VestingPool {
             // Exponential vesting
             vestedAmount = calculateExponential(vesting.amount, vestedSeconds, durationSeconds);
         } else {
+            // This is unreachable because it is not possible to add a vesting with an invalid curve type
             revert("Invalid curve type");
         }
     }
@@ -193,14 +201,15 @@ contract VestingPool {
     }
 
     function vestingHash(
-        address target,
+        address account,
         uint8 curveType,
         bool managed,
         uint16 durationWeeks,
         uint64 startDate,
         uint128 amount
     ) public view returns (bytes32 vestingId) {
-        // TODO: implement EIP-712
-        vestingId = keccak256(abi.encodePacked(address(this), target, curveType, managed, durationWeeks, startDate, amount));
+        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, block.chainid, this));
+        bytes32 vestingDataHash = keccak256(abi.encode(VESTING_TYPEHASH, account, curveType, managed, durationWeeks, startDate, amount));
+        vestingId = keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, vestingDataHash));
     }
 }

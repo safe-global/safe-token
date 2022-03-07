@@ -12,8 +12,12 @@ export const getVestingPool = async () => {
     return Contract.attach(Deployment.address);
 }
 
+export const getTestTokenContract = async () => {
+    return await hre.ethers.getContractFactory("TestToken");
+}
+
 export const deployTestToken = async () => {
-    const Contract = await hre.ethers.getContractFactory("TestToken");
+    const Contract = await getTestTokenContract();
     return await Contract.deploy();
 }
 
