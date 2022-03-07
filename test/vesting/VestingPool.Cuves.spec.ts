@@ -3,8 +3,7 @@ import { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getVestingPoolContract } from "../utils/setup";
 import { BigNumber, Contract } from "ethers";
-import { Vesting } from "../utils/types";
-import { calculateVestingHash } from "../utils/hash";
+import { Vesting } from "../../src/utils/types";
 import { setNextBlockTime } from "../utils/state";
 
 describe("VestingPool - Curves", async () => {

@@ -3,8 +3,8 @@ import { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getVestingPoolContract } from "../utils/setup";
 import { Contract } from "ethers";
-import { Vesting } from "../utils/types";
-import { calculateVestingHash } from "../utils/hash";
+import { Vesting } from "../../src/utils/types";
+import { calculateVestingHash } from "../../src/utils/hash";
 
 describe("VestingPool - Hash", async () => {
 
@@ -34,7 +34,7 @@ describe("VestingPool - Hash", async () => {
         it('calculate correct hash for managed vesting', async () => {
             const { pool } = await setupTests()
             const vesting: Vesting = {
-                account: user2.address, 
+                account: user2.address,
                 curveType: 0, 
                 managed: true, 
                 durationWeeks: 104, 
