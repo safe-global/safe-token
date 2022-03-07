@@ -75,7 +75,11 @@ contract VestingPool {
         emit AddedVesting(vestingId, target);
     }
 
-    function claimAvailableVesting(bytes32 vestingId, address beneficor, uint128 tokensToClaim) public {
+    function claimAvailableVesting(
+        bytes32 vestingId,
+        address beneficor,
+        uint128 tokensToClaim
+    ) public {
         require(beneficor != address(0), "Cannot claim to 0-address");
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
@@ -153,7 +157,9 @@ contract VestingPool {
         // Convert vesting duration to seconds
         uint64 durationSeconds = uint64(vesting.durationWeeks) * 7 * 24 * 60 * 60;
         // If contract is paused use the pausing date to calculate amount
-        uint64 vestedSeconds = vesting.pausingDate > 0 ? vesting.pausingDate - vesting.startDate : uint64(block.timestamp) - vesting.startDate;
+        uint64 vestedSeconds = vesting.pausingDate > 0
+            ? vesting.pausingDate - vesting.startDate
+            : uint64(block.timestamp) - vesting.startDate;
         if (vestedSeconds >= durationSeconds) {
             // If vesting time is longer than duration everything has been vested
             vestedAmount = vesting.amount;
