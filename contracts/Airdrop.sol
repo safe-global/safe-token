@@ -37,6 +37,7 @@ contract Airdrop is VestingPool {
         uint128 amount,
         bytes32[] calldata proof
     ) external {
+        // TODO: should only account be able to claim (e.g. require(account == msg.sender))
         require(root != bytes32(0), "State root not initialized");
         // Add vesting will fail if the vesting was already created
         bytes32 vestingId = _addVesting(account, curveType, false, durationWeeks, startDate, amount);

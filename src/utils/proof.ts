@@ -29,7 +29,7 @@ const generate = (input: string[], element?: string): { root: string, proof: str
                 }
             }
         }
-        count = Math.floor(count / 2)
+        count = Math.ceil(count / 2)
     }
     return { proof, root: elements[0] }
 }

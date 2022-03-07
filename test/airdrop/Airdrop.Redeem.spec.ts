@@ -71,7 +71,58 @@ describe("Airdrop - Setup", async () => {
                 )
             ).to.be.revertedWith("State root not initialized")
         })
-        
+
+        it('should revert with invalid proof', async () => {
+            const { airdrop, token } = await setupTests()
+            const amount = ethers.utils.parseUnits("200000", 18)
+            const { root, elements } = await generateAirdrop(airdrop, amount)
+            await airdrop.initializeRoot(root)
+            await token.transfer(airdrop.address, amount.mul(2))
+            const vesting = createVesting(user1.address, amount)
+            const vestingHash = calculateVestingHash(airdrop, vesting, await getChainId())
+            const proof = generateProof(elements, vestingHash)
+            proof.pop()
+            await expect(
+                airdrop.redeem(
+                    vesting.account,
+                    vesting.curveType,
+                    vesting.durationWeeks,
+                    vesting.startDate,
+                    vesting.amount,
+                    proof
+                )
+            ).to.be.revertedWith("Invalid merkle proof")
+        })
+
+        it('should revert if redeemed twice', async () => {
+            const { airdrop, token } = await setupTests()
+            const amount = ethers.utils.parseUnits("200000", 18)
+            const { root, elements } = await generateAirdrop(airdrop, amount)
+            await airdrop.initializeRoot(root)
+            await token.transfer(airdrop.address, amount.mul(2))
+            const vesting = createVesting(user1.address, amount)
+            const vestingHash = calculateVestingHash(airdrop, vesting, await getChainId())
+            const proof = generateProof(elements, vestingHash)
+            await airdrop.redeem(
+                vesting.account,
+                vesting.curveType,
+                vesting.durationWeeks,
+                vesting.startDate,
+                vesting.amount,
+                proof
+            )
+            await expect(
+                airdrop.redeem(
+                    vesting.account,
+                    vesting.curveType,
+                    vesting.durationWeeks,
+                    vesting.startDate,
+                    vesting.amount,
+                    proof
+                )
+            ).to.be.revertedWith("Vesting id already used")
+        })
+
         it('will transfer tokens and add vesting', async () => {
             const { airdrop, token } = await setupTests()
             const amount = ethers.utils.parseUnits("200000", 18)
@@ -93,6 +144,33 @@ describe("Airdrop - Setup", async () => {
             )
                 .to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, amount)
                 .and.to.emit(airdrop, "AddedVesting").withArgs(vestingHash, user1.address)
+        })
+
+        it('can claim all vestings', async () => {
+            const { airdrop, token } = await setupTests()
+            const amount = ethers.utils.parseUnits("200000", 18)
+            const { root, elements } = await generateAirdrop(airdrop, amount)
+            await airdrop.initializeRoot(root)
+            await token.transfer(airdrop.address, amount.mul(2).mul(users.length))
+            for (const user of users) {
+                const vesting = createVesting(user.address, amount)
+                const vestingHash = calculateVestingHash(airdrop, vesting, await getChainId())
+                const proof = generateProof(elements, vestingHash)
+                await expect(
+                    airdrop.redeem(
+                        vesting.account,
+                        vesting.curveType,
+                        vesting.durationWeeks,
+                        vesting.startDate,
+                        vesting.amount,
+                        proof
+                    )
+                )
+                    .to.emit(token, "Transfer").withArgs(airdrop.address, user.address, amount)
+                    .and.to.emit(airdrop, "AddedVesting").withArgs(vestingHash, user.address)
+            }
+            expect(await token.balanceOf(airdrop.address)).to.be.eq(amount.mul(users.length))
+            expect(await airdrop.totalTokensInVesting()).to.be.eq(amount.mul(users.length))
         })
     })
 })
