@@ -22,6 +22,7 @@ contract Airdrop is VestingPool {
 
     /// @notice Immediatelly redeems `amount` tokens and creates a vesting for the same amount.
     /// @dev It is required that the pool has enough tokens available
+    /// @dev This will trigger a transfer of tokens
     /// @param account The account for which the vesting is created
     /// @param curveType Type of the curve that should be used for the vesting
     /// @param durationWeeks The duration of the vesting in weeks
