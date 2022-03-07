@@ -188,7 +188,9 @@ contract VestingPool {
         uint64 totalTime
     ) internal pure returns (uint128) {
         // Calculate vested amount on linear curve: amount * vestedTime / duration
-        return (targetAmount * elapsedTime) / totalTime;
+        uint256 amount = (uint256(targetAmount) * uint256(elapsedTime)) / uint256(totalTime);
+        require(amount <= type(uint128).max, "Overflow in curve calculation");
+        return uint128(amount);
     }
 
     function calculateExponential(
@@ -197,7 +199,9 @@ contract VestingPool {
         uint64 totalTime
     ) internal pure returns (uint128) {
         // Calculate vested amount on exponential curve: amount * vestedTime^2 / duration^2
-        return (targetAmount * elapsedTime * elapsedTime) / (totalTime * totalTime);
+        uint256 amount = (uint256(targetAmount) * uint256(elapsedTime) * uint256(elapsedTime)) / (uint256(totalTime) * uint256(totalTime));
+        require(amount <= type(uint128).max, "Overflow in curve calculation");
+        return uint128(amount);
     }
 
     function vestingHash(
