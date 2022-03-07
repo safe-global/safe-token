@@ -32,6 +32,15 @@ describe("VestingPool - Curves", async () => {
         return { vestingHash }
     }
 
+    describe("calculateVestedAmount", async () => {
+        it('should revert if vesting not found', async () => {
+            const { pool } = await setupTests()
+            await expect(
+                pool.calculateVestedAmount(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("test")))
+            ).to.be.revertedWith("Vesting not found")
+        })
+    })
+
     describe("linear", async () => {
 
         const checkLinearVesting = async (pool: Contract, vesting: Vesting, progress: number, vestingHash: string) => {

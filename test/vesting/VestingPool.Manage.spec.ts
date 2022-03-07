@@ -337,6 +337,20 @@ describe("VestingPool - Manage", async () => {
             expect(await pool.totalTokensInVesting()).to.be.eq(expectedAmount)
         })
 
+        it('should revert if vesting is not managed', async () => {
+            const { pool, token } = await setupTests()
+
+            const vestingAmount = ethers.utils.parseUnits("200000", 18)
+            const currentTime = (await ethers.provider.getBlock("latest")).timestamp
+            // 1h in the future
+            const targetTime = currentTime + 3600
+            const { vestingHash } = await addVesting(pool, token, vestingAmount, targetTime, false)
+
+            await expect(
+                pool.cancelVesting(vestingHash)
+            ).to.be.revertedWith("Only managed vestings can be cancelled")
+        })
+
         it('should revert if vesting is cancelled twice', async () => {
             const { pool, token } = await setupTests()
 

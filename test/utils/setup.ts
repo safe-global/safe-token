@@ -2,6 +2,16 @@ import hre, { deployments } from "hardhat"
 import { Wallet, Contract } from "ethers"
 import solc from "solc"
 
+export const getAirdropContract = async () => {
+    return await hre.ethers.getContractFactory("Airdrop");
+}
+
+export const getAirdrop = async () => {
+    const Contract = await getVestingPoolContract();
+    const Deployment = await deployments.get("Airdrop");
+    return Contract.attach(Deployment.address);
+}
+
 export const getVestingPoolContract = async () => {
     return await hre.ethers.getContractFactory("VestingPool");
 }
