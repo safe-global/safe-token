@@ -1,6 +1,11 @@
 Safe Token Contracts
 =====================
 
+### Contract behaviour
+- [Token](./docs/token.md)
+- [Vesting](./docs/vesting.md)
+- [Airdrop](./docs/airdrop.md)
+
 Usage
 -----
 ### Install requirements with yarn:
