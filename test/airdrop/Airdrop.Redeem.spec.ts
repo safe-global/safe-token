@@ -56,6 +56,22 @@ describe("Airdrop - Setup", async () => {
     }
 
     describe("redeem", async () => {
+        it('should revert if root not set', async () => {
+            const { airdrop, token } = await setupTests()
+            const amount = ethers.utils.parseUnits("200000", 18)
+            const vesting = createVesting(user1.address, amount)
+            await expect(
+                airdrop.redeem(
+                    vesting.account,
+                    vesting.curveType,
+                    vesting.durationWeeks,
+                    vesting.startDate,
+                    vesting.amount,
+                    []
+                )
+            ).to.be.revertedWith("State root not initialized")
+        })
+        
         it('will transfer tokens and add vesting', async () => {
             const { airdrop, token } = await setupTests()
             const amount = ethers.utils.parseUnits("200000", 18)
