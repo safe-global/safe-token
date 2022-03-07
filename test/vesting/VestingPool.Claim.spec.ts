@@ -42,7 +42,7 @@ describe("VestingPool - Claim", async () => {
             ).to.be.revertedWith("Can only be claimed by vesting owner")
         })
 
-        it('should revert if beneficor is 0-address', async () => {
+        it('should revert if beneficiary is 0-address', async () => {
             const { pool } = await setupTests()
             const vestingHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("test"))
             await expect(

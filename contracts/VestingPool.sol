@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @author Richard Meissner - @rmeissner
 contract VestingPool {
     event AddedVesting(bytes32 indexed id, address indexed account);
-    event ClaimedVesting(bytes32 indexed id, address indexed account, address indexed benficor);
+    event ClaimedVesting(bytes32 indexed id, address indexed account, address indexed beneficiary);
     event PausedVesting(bytes32 indexed id);
     event UnpausedVesting(bytes32 indexed id);
     event CanceledVesting(bytes32 indexed id);
@@ -87,10 +87,10 @@ contract VestingPool {
 
     function claimVestedTokens(
         bytes32 vestingId,
-        address beneficor,
+        address beneficiary,
         uint128 tokensToClaim
     ) public {
-        require(beneficor != address(0), "Cannot claim to 0-address");
+        require(beneficiary != address(0), "Cannot claim to 0-address");
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
@@ -101,8 +101,8 @@ contract VestingPool {
         totalTokensInVesting -= claimAmount;
         vesting.amountClaimed += claimAmount;
         vestings[vestingId] = vesting;
-        require(IERC20(token).transfer(beneficor, claimAmount), "Token transfer failed");
-        emit ClaimedVesting(vestingId, vesting.account, beneficor);
+        require(IERC20(token).transfer(beneficiary, claimAmount), "Token transfer failed");
+        emit ClaimedVesting(vestingId, vesting.account, beneficiary);
     }
 
     function cancelVesting(bytes32 vestingId) public onlyPoolManager {
