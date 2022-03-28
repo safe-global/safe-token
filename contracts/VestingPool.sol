@@ -71,12 +71,39 @@ contract VestingPool {
         uint16 durationWeeks,
         uint64 startDate,
         uint128 amount
-    ) public onlyPoolManager {
+    ) public virtual onlyPoolManager {
+        _addVesting(account, curveType, managed, durationWeeks, startDate, amount);
+    }
+
+    /// @notice Calculate the amount of tokens available for new vestings.
+    /// @dev This value changes when more tokens are deposited to this contract
+    /// @return Amount of tokens that can be used for new vestings.
+    function tokensAvailableForVesting() public view virtual returns (uint256) {
+        return IERC20(token).balanceOf(address(this)) - totalTokensInVesting;
+    }
+
+    /// @notice Create a vesting on this pool for `account`.
+    /// @dev It is required that the pool has enough tokens available
+    /// @param account The account for which the vesting is created
+    /// @param curveType Type of the curve that should be used for the vesting
+    /// @param managed Boolean that indicates if the vesting can be managed by the pool manager
+    /// @param durationWeeks The duration of the vesting in weeks
+    /// @param startDate The date when the vesting should be started (can be in the past)
+    /// @param amount Amount of tokens that should be vested in atoms
+    /// @param vestingId The id of the created vesting
+    function _addVesting(
+        address account,
+        uint8 curveType,
+        bool managed,
+        uint16 durationWeeks,
+        uint64 startDate,
+        uint128 amount
+    ) internal returns (bytes32 vestingId) {
         require(curveType < 2, "Invalid vesting curve");
-        bytes32 vestingId = vestingHash(account, curveType, managed, durationWeeks, startDate, amount);
+        vestingId = vestingHash(account, curveType, managed, durationWeeks, startDate, amount);
         require(vestings[vestingId].account == address(0), "Vesting id already used");
         // Check that enough tokens are available for the new vesting
-        uint256 availableTokens = IERC20(token).balanceOf(address(this)) - totalTokensInVesting;
+        uint256 availableTokens = tokensAvailableForVesting();
         require(availableTokens >= amount, "Not enough tokens available");
         // Mark tokens for this vesting in use
         totalTokensInVesting += amount;
@@ -97,9 +124,10 @@ contract VestingPool {
     /// @notice Claim `tokensToClaim` tokens from vesting `vestingId`.
     /// @dev This can only be called by the owner of the vesting
     /// @dev Beneficiary cannot be the 0-address
+    /// @dev This will trigger a transfer of tokens
     /// @param vestingId Id of the vesting from which the tokens should be claimed
     /// @param beneficiary Account that should receive the claimed tokens
-    /// @param tokensToClaim Amount of tokens to claim in atoms
+    /// @param tokensToClaim Amount of tokens to claim in atoms or max uint256 to claim all available
     function claimVestedTokens(
         bytes32 vestingId,
         address beneficiary,
@@ -110,6 +138,7 @@ contract VestingPool {
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
         uint128 availableClaim = _calculateVestedAmount(vesting) - vesting.amountClaimed;
+        // If max uint128 is used, claim all available tokens.
         uint128 claimAmount = tokensToClaim == type(uint128).max ? availableClaim : tokensToClaim;
         require(claimAmount <= availableClaim, "Trying to claim too many tokens");
         // Adjust how many tokens are locked in vesting

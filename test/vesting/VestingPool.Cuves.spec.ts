@@ -3,8 +3,7 @@ import { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getVestingPoolContract } from "../utils/setup";
 import { BigNumber, Contract } from "ethers";
-import { Vesting } from "../utils/types";
-import { calculateVestingHash } from "../utils/hash";
+import { Vesting } from "../../src/utils/types";
 import { setNextBlockTime } from "../utils/state";
 
 describe("VestingPool - Curves", async () => {
@@ -31,6 +30,15 @@ describe("VestingPool - Curves", async () => {
         ).to.emit(pool, "AddedVesting").withArgs(vestingHash, user2.address)
         return { vestingHash }
     }
+
+    describe("calculateVestedAmount", async () => {
+        it('should revert if vesting not found', async () => {
+            const { pool } = await setupTests()
+            await expect(
+                pool.calculateVestedAmount(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("test")))
+            ).to.be.revertedWith("Vesting not found")
+        })
+    })
 
     describe("linear", async () => {
 
