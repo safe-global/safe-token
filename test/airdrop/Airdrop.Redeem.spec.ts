@@ -7,7 +7,7 @@ import { calculateVestingHash } from "../../src/utils/hash";
 import { BigNumber, Contract } from "ethers";
 import { generateRoot, generateProof } from "../../src/utils/proof";
 
-describe("Airdrop - Setup", async () => {
+describe("Airdrop - Redeem", async () => {
 
     const vestingStart = (new Date()).getTime()
     const users = waffle.provider.getWallets()
