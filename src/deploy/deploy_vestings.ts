@@ -6,12 +6,12 @@ import loadTokenConfig, { nameToAddress } from "../utils/tokenConfig";
 const deployPool = async(deployer: any, deployFunc: any, name: string, asAirdrop: boolean = false) => {
   const deploymentConfig = await deployFunc(asAirdrop ? "Airdrop" : "VestingPool", {
     from: deployer,
-    args: ["0xd9510019D56b57eb0A8FA0fdEf3cC6549F0b3841", nameToAddress("Safe Dao")],
+    args: [nameToAddress("Safe Token"), nameToAddress("Safe Dao")],
     log: true,
     salt: ethers.utils.keccak256(ethers.utils.toUtf8Bytes(name)),
   });
   console.log(`${name} to ${deploymentConfig.address}`)
-  if (nameToAddress(name) !== deploymentConfig.address) throw Error("Update deployment address")
+  if (nameToAddress(name) !== deploymentConfig.address) console.error("Update deployment address")
   return deploymentConfig.deploy()
 }
 

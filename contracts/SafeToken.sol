@@ -27,7 +27,7 @@ contract SafeToken is ERC20, ERC20Pausable, Ownable {
         // Make sure that the provide number of holders corresponds to the provided number of amounts
         require(initialTokenHolderCount == initialTokenAmounts.length, "Invalid parameters supplied");
         // Mint the initial tokens
-        for(uint256 i = 0; i < initialTokenHolderCount; i++) {
+        for (uint256 i = 0; i < initialTokenHolderCount; i++) {
             _mint(initialTokenHolders[i], initialTokenAmounts[i]);
         }
         // "ether" is used here to get the 18 decimals
