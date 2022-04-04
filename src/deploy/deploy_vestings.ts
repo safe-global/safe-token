@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { DeployFunction, DeployResult } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import loadTokenConfig, { nameToAddress } from "../utils/tokenConfig";
+import { nameToAddress } from "../utils/tokenConfig";
 
 const deployPool = async(deployer: any, deployFunc: any, name: string, asAirdrop: boolean = false) => {
   const deploymentConfig = await deployFunc(asAirdrop ? "Airdrop" : "VestingPool", {
@@ -23,12 +23,13 @@ const deploy: DeployFunction = async function (
   const { deterministic } = deployments;
 
   // Vesting pools
-  await deployPool(deployer, deterministic, "Strategic Raise")
-  await deployPool(deployer, deterministic, "Future team")
+  // await deployPool(deployer, deterministic, "DAOs")
+  // await deployPool(deployer, deterministic, "Strategic Raise")
+  // await deployPool(deployer, deterministic, "Future team")
 
   // Airdrops pools
-  await deployPool(deployer, deterministic, "Ecosystem Airdrop", true)
-  await deployPool(deployer, deterministic, "User Airdrop", true)
+  // await deployPool(deployer, deterministic, "Ecosystem Airdrop", true)
+  // await deployPool(deployer, deterministic, "User Airdrop", true)
 };
 
 deploy.tags = ['vesting']

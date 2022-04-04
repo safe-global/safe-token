@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./vendor/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./VestingPool.sol";
 
 /// @title Airdrop contract
