@@ -2,6 +2,7 @@ Safe Token Contracts
 =====================
 
 ### Contract behaviour
+- [Deployment](./docs/deployment.md)
 - [Token](./docs/token.md)
 - [Vesting Pool](./docs/vesting.md)
 - [Airdrop](./docs/airdrop.md)
