@@ -2,7 +2,7 @@
   "name": "safe-token",
   "version": "1.0.0",
   "description": "Repository for Safe token related contracts",
-  "homepage": "https://github.com/gnosis/safe-token/",
+  "homepage": "https://www.gnosis-safe.io",
   "license": "GPL-3.0",
   "files": [
     "contracts",
@@ -30,16 +30,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gnosis/safe-token.git"
+    "url": "git+https://github.com/safe-global/safe-token.git"
   },
   "keywords": [
     "Ethereum",
     "Token",
     "Safe"
   ],
-  "author": "safe@gnosis.pm",
+  "author": "rmeissner",
   "bugs": {
-    "url": "https://github.com/gnosis/safe-token/issues"
+    "url": "https://github.com/safe-global/safe-token/issues"
   },
   "devDependencies": {
     "@gnosis.pm/mock-contract": "^4.0.0",

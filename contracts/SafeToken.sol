@@ -38,8 +38,9 @@ contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
+        // TODO: require(to != address(this), "SafeToken: cannot transfer tokens to token contract");
         // Token transfers are only possible if the contract is not pause
         // OR if triggered by the owner of the contract
-        require(!paused() || owner() == _msgSender(), "ERC20Pausable: token transfer while paused");
+        require(!paused() || owner() == _msgSender(), "SafeToken: token transfer while paused");
     }
 }
