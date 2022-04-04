@@ -7,12 +7,13 @@ import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title Token Rescuer contract
 /// @author Richard Meissner - @rmeissner
 contract TokenRescuer is Ownable {
-
     /// @param token Token that should be rescued
     /// @param beneficiary The account that should receive the tokens
     /// @param amount Amount of tokens that should be rescued
     function _beforeTokenRescue(
-        IERC20 token, address beneficiary, uint256 amount
+        IERC20 token,
+        address beneficiary,
+        uint256 amount
     ) internal virtual {}
 
     /// @notice Transfer all tokens with address `token` owned by this contract to `beneficiary`.

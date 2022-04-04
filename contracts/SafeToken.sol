@@ -9,7 +9,6 @@ import "./TokenRescuer.sol";
 /// @title Safe Token contract
 /// @author Richard Meissner - @rmeissner
 contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
-
     /// @dev Will mint 1 billion tokens to the owner and pause the contract
     constructor(address owner) ERC20("Safe Token", "SAFE") {
         // Owner of the token should be the Safe DAO
