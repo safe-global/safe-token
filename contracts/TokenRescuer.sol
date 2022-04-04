@@ -25,13 +25,4 @@ contract TokenRescuer is Ownable {
         _beforeTokenRescue(token, beneficiary, balanceToRescue);
         require(token.transfer(beneficiary, balanceToRescue), "TokenRescuer: Could not rescue token");
     }
-
-    /// @notice Transfer all Ether owned by this contract to `beneficiary`.
-    /// @dev This can only be called by the owner of the contract
-    /// @param beneficiary The account that should receive the Ether.
-    function rescueEther(address beneficiary) external onlyOwner {
-        require(address(this).balance > 0, "TokenRescuer: No Ether to rescue");
-        (bool success,) = beneficiary.call{ value: address(this).balance }("");
-        require(success, "TokenRescuer: Could not rescue Ether");
-    }
 }
