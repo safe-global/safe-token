@@ -9,7 +9,7 @@ contract VestingPool {
     event ClaimedVesting(bytes32 indexed id, address indexed account, address indexed beneficiary);
     event PausedVesting(bytes32 indexed id);
     event UnpausedVesting(bytes32 indexed id);
-    event CanceledVesting(bytes32 indexed id);
+    event CancelledVesting(bytes32 indexed id);
 
     // Sane limits based on: https://eips.ethereum.org/EIPS/eip-1985
     // amountClaimed should always be equal or less than amount
@@ -152,7 +152,7 @@ contract VestingPool {
     /// @notice Cancel vesting `vestingId`.
     /// @dev This can only be called by the pool manager
     /// @dev Only manageable vestings can be cancelled
-    /// @param vestingId Id of the vesting that should be canceled
+    /// @param vestingId Id of the vesting that should be cancelled
     function cancelVesting(bytes32 vestingId) public onlyPoolManager {
         Vesting memory vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
@@ -171,7 +171,7 @@ contract VestingPool {
         // Vesting is set to cancelled and therefore disallows unpausing
         vesting.cancelled = true;
         vestings[vestingId] = vesting;
-        emit CanceledVesting(vestingId);
+        emit CancelledVesting(vestingId);
     }
 
     /// @notice Pause vesting `vestingId`.
