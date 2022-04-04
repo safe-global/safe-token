@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0 <0.9.0;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Vesting contract for multiple accounts
 /// @author Richard Meissner - @rmeissner

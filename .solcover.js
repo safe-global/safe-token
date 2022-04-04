@@ -1,7 +1,8 @@
 module.exports = {
     skipFiles: [
         'test/TestExecutor.sol',
-        'test/Imports.sol'
+        'test/Imports.sol',
+        'vendor'
     ],
     mocha: {
         grep: "@skip-on-coverage", // Find everything with this tag

@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { nameToAddress } from "../utils/tokenConfig";
 
 const deploy: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment,
@@ -9,12 +10,14 @@ const deploy: DeployFunction = async function (
   const { deployer } = await getNamedAccounts();
   const { deploy } = deployments;
 
-  await deploy("SafeToken", {
+  const deployment = await deploy("SafeToken", {
     from: deployer,
-    args: [],
+    args: [nameToAddress("Safe Foundation")],
     log: true,
     deterministicDeployment: true,
   });
+  console.log("Gas used for token deployment:", deployment?.receipt?.gasUsed?.toString())
+  console.log("Token deployed to", deployment.address)
 };
 
 deploy.tags = ['token']
