@@ -261,7 +261,7 @@ describe("VestingPool - Manage", async () => {
 
             await expect(
                 pool.cancelVesting(vestingHash)
-            ).to.emit(pool, "CanceledVesting").withArgs(vestingHash)
+            ).to.emit(pool, "CancelledVesting").withArgs(vestingHash)
 
             vesting = await pool.vestings(vestingHash)
             // If vesting that starts in the future is cancelled then the pausing date is the start date
@@ -295,7 +295,7 @@ describe("VestingPool - Manage", async () => {
             await setNextBlockTime(targetTime + 7200)
             await expect(
                 pool.cancelVesting(vestingHash)
-            ).to.emit(pool, "CanceledVesting").withArgs(vestingHash)
+            ).to.emit(pool, "CancelledVesting").withArgs(vestingHash)
 
             // Check cancelled vesting state
             const expectedAmount = BigNumber.from("11446886446886446886")
@@ -325,7 +325,7 @@ describe("VestingPool - Manage", async () => {
             await setNextBlockTime(targetTime + 3600)
             await expect(
                 pool.cancelVesting(vestingHash)
-            ).to.emit(pool, "CanceledVesting").withArgs(vestingHash)
+            ).to.emit(pool, "CancelledVesting").withArgs(vestingHash)
 
             const expectedAmount = BigNumber.from("11446886446886446886")
             const { vestedAmount } = await pool.calculateVestedAmount(vestingHash)

@@ -44,4 +44,4 @@ When a vesting is paused then during that time no additional tokens should be ve
 
 #### Canceling
 
-When a vesting is canceled it will also be marked as paused, but it will not be possible to unpause the vesting. The unvested tokens will be made available for new vestings again.
+When a vesting is cancelled it will also be marked as paused, but it will not be possible to unpause the vesting. The unvested tokens will be made available for new vestings again.
