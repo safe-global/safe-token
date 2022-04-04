@@ -19,7 +19,7 @@ The Safe token is ownable and the initial token supply will be minted to the spe
 
 ### Transferability
 
-The Safe token is initially not transferable. The only exception to this is the owner of the token contract.
+The Safe token is initially not transferrable. The only exception to this is the owner of the token contract.
 
 To make the token transferable the owner of the token has to call the `unpause` method of the token contract. Once the token contract is unpaused (and therefore the token is transferable) it is not possible to pause the token contract again (e.g. once transferable forever transferable).
 
