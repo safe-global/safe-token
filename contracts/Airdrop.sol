@@ -5,6 +5,7 @@ import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./vendor/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./VestingPool.sol";
 
+// TODO: add possibility to claim tokens when airdrop is expired
 /// @title Airdrop contract
 /// @author Richard Meissner - @rmeissner
 contract Airdrop is VestingPool {
@@ -20,6 +21,8 @@ contract Airdrop is VestingPool {
         root = _root;
     }
 
+    // TODO: add redeem multiple for same account
+    // TODO: add expiration time
     /// @notice Immediatelly redeems `amount` tokens and creates a vesting for the same amount.
     /// @dev It is required that the pool has enough tokens available
     /// @dev This will trigger a transfer of tokens
@@ -37,11 +40,12 @@ contract Airdrop is VestingPool {
         uint128 amount,
         bytes32[] calldata proof
     ) external {
-        // TODO: should only account be able to claim (e.g. require(account == msg.sender))
+        // TODO: only account be able to claim (e.g. require(account == msg.sender))
         require(root != bytes32(0), "State root not initialized");
         // Add vesting will fail if the vesting was already created
         bytes32 vestingId = _addVesting(account, curveType, false, durationWeeks, startDate, amount);
         require(MerkleProof.verify(proof, root, vestingId), "Invalid merkle proof");
+        // TODO: remove, this can be achieved via an additional vesting
         require(IERC20(token).transfer(account, amount), "Could not transfer token");
     }
 
@@ -50,6 +54,7 @@ contract Airdrop is VestingPool {
     /// @dev The value is halfed as the same amount vested is also immediately redeemed
     /// @return Amount of tokens that can be used for new vestings.
     function tokensAvailableForVesting() public view override returns (uint256) {
+        // TODO: adjust when additional transfer is removed
         return (IERC20(token).balanceOf(address(this)) - totalTokensInVesting) / 2;
     }
 
