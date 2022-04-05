@@ -15,6 +15,19 @@ describe("SafeToken - Deployment", async () => {
             ).to.be.eq("0x164FF0341AC389F4989FB4F22Fae4401BceA547D")
         })
 
+        it('should return correct details', async () => {
+            const { token } = await setupTokenTests()
+            expect(
+                await token.decimals()
+            ).to.be.eq(18)
+            expect(
+                await token.name()
+            ).to.be.eq("Safe Token")
+            expect(
+                await token.symbol()
+            ).to.be.eq("SAFE")
+        })
+
         it('should be paused by default', async () => {
             const { token } = await setupTokenTests()
             expect(
