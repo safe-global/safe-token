@@ -23,6 +23,7 @@ contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
     /// @dev See {Pausable-_unpause}
     /// Requirements: caller must be the owner
     function unpause() public virtual onlyOwner {
+        require(paused(), "SafeToken: token is not paused");
         _unpause();
     }
 

@@ -1,9 +1,7 @@
 import { expect } from "chai";
 import "@nomiclabs/hardhat-ethers";
-import hre, { deployments, ethers, waffle } from "hardhat";
-import { getExecutor, getToken, getMock } from "../utils/setup";
-import { parseEther } from "@ethersproject/units";
-import { AddressOne, nameToAddress } from "../../src/utils/tokenConfig";
+import { ethers } from "hardhat";
+import { nameToAddress } from "../../src/utils/tokenConfig";
 import { setupTokenTests } from "./utils";
 
 describe("SafeToken - Deployment", async () => {
