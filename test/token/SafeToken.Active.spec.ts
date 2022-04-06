@@ -4,12 +4,13 @@ import "@nomiclabs/hardhat-ethers";
 import { setupTokenTests } from "./utils";
 import { nameToAddress } from "../../src/utils/tokenConfig";
 
-describe("SafeToken - Inactive", async () => {
+describe("SafeToken - Active", async () => {
 
     const [user1, user2] = waffle.provider.getWallets();
 
     const setupTests = deployments.createFixture(async () => {
         const { token, ownedToken } = await setupTokenTests()
+        await ownedToken.unpause()
         return {
             token,
             ownedToken,
@@ -18,7 +19,7 @@ describe("SafeToken - Inactive", async () => {
 
     describe("transfer", async () => {
 
-        it('should revert if not called by owner', async () => {
+        it('should emit event on transfer', async () => {
             const { token, ownedToken } = await setupTests()
             await ownedToken.transfer(user1.address, 1000)
             expect(
@@ -26,7 +27,7 @@ describe("SafeToken - Inactive", async () => {
             ).to.be.eq(1000)
             await expect(
                 token.transfer(user2.address, 1000)
-            ).to.be.revertedWith("SafeToken: token transfer while paused")
+            ).to.emit(ownedToken, "Transfer").withArgs(user1.address, user2.address, 1000)
         })
 
         it('should revert on transfer to token contract', async () => {
@@ -36,7 +37,7 @@ describe("SafeToken - Inactive", async () => {
             ).to.be.revertedWith("SafeToken: cannot transfer tokens to token contract")
         })
 
-        it('should emit event on transfer', async () => {
+        it('should emit event on transfer by owner', async () => {
             const { ownedToken } = await setupTests()
             await expect(
                 ownedToken.transfer(user1.address, 1000)
@@ -57,18 +58,6 @@ describe("SafeToken - Inactive", async () => {
             ).to.be.revertedWith("ERC20: insufficient allowance")
         })
 
-        it('should revert if not called by owner', async () => {
-            const { token, ownedToken } = await setupTests()
-            await token.connect(user2).approve(user1.address, 1000)
-            await ownedToken.transfer(user2.address, 1000)
-            expect(
-                await token.balanceOf(user2.address)
-            ).to.be.eq(1000)
-            await expect(
-                token.transferFrom(user2.address, user1.address, 1000)
-            ).to.be.revertedWith("SafeToken: token transfer while paused")
-        })
-
         it('should revert on transfer to token contract', async () => {
             const { token, ownedToken } = await setupTests()
             await token.approve(nameToAddress("Safe Foundation"), 1000)
@@ -79,6 +68,27 @@ describe("SafeToken - Inactive", async () => {
         })
 
         it('should update allowance and emit event on transferFrom', async () => {
+            const { token, ownedToken } = await setupTests()
+            await token.connect(user2).approve(user1.address, 1000)
+            await ownedToken.transfer(user2.address, 1000)
+            expect(
+                await token.balanceOf(user2.address)
+            ).to.be.eq(1000)
+            await expect(
+                token.transferFrom(user2.address, user1.address, 300)
+            ).to.emit(ownedToken, "Transfer").withArgs(user2.address, user1.address, 300)
+            expect(
+                await token.allowance(user2.address, user1.address)
+            ).to.be.eq(700)
+            expect(
+                await token.balanceOf(user2.address)
+            ).to.be.eq(700)
+            expect(
+                await token.balanceOf(user1.address)
+            ).to.be.eq(300)
+        })
+
+        it('should update allowance and emit event on transferFrom by owner', async () => {
             const { token, ownedToken } = await setupTests()
             await token.approve(nameToAddress("Safe Foundation"), 1000)
             expect(
