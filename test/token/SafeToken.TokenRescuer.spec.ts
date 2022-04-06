@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import hre, { deployments, ethers, waffle } from "hardhat";
+import { deployments, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { getMock, getTestTokenContract } from "../utils/setup";
 import { setupTokenTests } from "./utils";
 
-describe("SafeToken - Deployment", async () => {
+describe("SafeToken - Token Rescuer", async () => {
 
     const [user1, user2] = waffle.provider.getWallets();
 
