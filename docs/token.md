@@ -9,7 +9,7 @@
 
 ## Purpose
 
-TODO: add link
+See [GIP-29](https://forum.gnosis.io/t/gip-29-spin-off-safedao-and-launch-safe-token/3476)
 
 ## Specifications
 
@@ -25,7 +25,7 @@ To make the token transferable the owner of the token has to call the `unpause` 
 
 ### Supply
 
-The total initial supply of 1 billion Safe token is minted to the token owner. These tokens then can be further by the token owner (e.g. according to [GIP-29](TODO: link to GIP-29)). The token contract does not support any inflation or minting logic. It is also not possible to burn the token. Therefore the total supply is fixed at 1 billion Safe tokens.
+The total initial supply of 1 billion Safe token is minted to the token owner. These tokens then can be further by the token owner (e.g. according to [GIP-29](https://forum.gnosis.io/t/gip-29-spin-off-safedao-and-launch-safe-token/3476)). The token contract does not support any inflation or minting logic. It is also not possible to burn the token. Therefore the total supply is fixed at 1 billion Safe tokens.
 
 ### ERC20 token recovery
 
