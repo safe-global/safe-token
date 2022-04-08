@@ -11,7 +11,7 @@ import "./TokenRescuer.sol";
 contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
     /// @dev Will mint 1 billion tokens to the owner and pause the contract
     constructor(address owner) ERC20("Safe Token", "SAFE") {
-        // Owner of the token should be the Safe DAO
+        // Transfer ownership immediately
         _transferOwnership(owner);
         // "ether" is used here to get the 18 decimals
         _mint(owner, 1_000_000_000 ether);

@@ -6,7 +6,7 @@ import { nameToAddress } from "../utils/tokenConfig";
 const deployPool = async(deployer: any, deployFunc: any, name: string, asAirdrop: boolean = false) => {
   const deploymentConfig = await deployFunc(asAirdrop ? "Airdrop" : "VestingPool", {
     from: deployer,
-    args: [nameToAddress("Safe Token"), nameToAddress("Safe Dao")],
+    args: [nameToAddress("Safe Token"), nameToAddress("Safe Foundation")],
     log: true,
     salt: ethers.utils.keccak256(ethers.utils.toUtf8Bytes(name)),
   });
