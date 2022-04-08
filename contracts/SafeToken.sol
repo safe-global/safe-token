@@ -13,9 +13,10 @@ contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
     constructor(address owner) ERC20("Safe Token", "SAFE") {
         // Transfer ownership immediately
         _transferOwnership(owner);
-        // "ether" is used here to get the 18 decimals
+        // "ether" is used here to get 18 decimals
         _mint(owner, 1_000_000_000 ether);
         // Contract is paused by default
+        // This has to be done after _mint, else minting will fail
         _pause();
     }
 
@@ -31,7 +32,7 @@ contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
     /// Requirements: the contract must not be paused OR transfer must be initiated by owner
     /// @param from The account that is sending the tokens
     /// @param to The account that should receive the tokens
-    /// @param amount Amount of tokens that should be transfered
+    /// @param amount Amount of tokens that should be transferred
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -40,7 +41,7 @@ contract SafeToken is ERC20, Pausable, Ownable, TokenRescuer {
         super._beforeTokenTransfer(from, to, amount);
 
         require(to != address(this), "SafeToken: cannot transfer tokens to token contract");
-        // Token transfers are only possible if the contract is not pause
+        // Token transfers are only possible if the contract is not paused
         // OR if triggered by the owner of the contract
         require(!paused() || owner() == _msgSender(), "SafeToken: token transfer while paused");
     }
