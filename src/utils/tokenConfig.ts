@@ -1,6 +1,5 @@
-import { BigNumber } from "ethers";
+import { ethers, BigNumber } from "ethers";
 import { getAddress } from "ethers/lib/utils";
-import { ethers } from "hardhat"
 
 export const AddressOne = "0x0000000000000000000000000000000000000001";
 
