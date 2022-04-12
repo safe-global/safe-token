@@ -9,9 +9,30 @@ const getDeployerAddress = async (hre: HardhatRuntimeEnvironment): Promise<strin
     const getter = hre.config.deterministicDeployment
     if (!getter) return "0x4e59b44847b379578588920ca78fbf26c0b4956c"
     const chainId = await hre.getChainId()
-    if (typeof getter === "function") return getter(chainId)?.deployer
-    return getter.chainId?.deployer
+    if (typeof getter === "function") {
+        console.log(getter(chainId))
+        return getter(chainId)?.factory
+    }
+    return getter.chainId?.factory
 }
+
+task("check_vanity_token", "Calculates an address for a salt")
+    .addParam("salt", "Salt", "", types.string)
+    .setAction(async (taskArgs, hre) => {
+        const deployerAddress = await getDeployerAddress(hre);
+        console.log(deployerAddress)
+        if (!deployerAddress) throw Error("No deployer specified")
+        const artifact = await hre.artifacts.readArtifact("SafeToken")
+        const contractFactory = new ethers.ContractFactory(artifact.abi, artifact.bytecode)
+        const deploymentCode = contractFactory.getDeployTransaction(nameToAddress("Safe Foundation")).data
+        if (!deploymentCode) throw Error("Could not generate deployment code")
+        const targetAddress = ethers.utils.getCreate2Address(
+            deployerAddress,
+            taskArgs.salt,
+            ethers.utils.keccak256(deploymentCode)
+        )
+        console.log(targetAddress)
+    });
 
 task("vanity_token", "Tries to find a vanity address for the token contract")
     .addParam("prefix", "Prefix with which the address should start", "", types.string, true)
