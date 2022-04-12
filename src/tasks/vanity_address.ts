@@ -37,8 +37,8 @@ task("check_vanity_token", "Calculates an address for a salt")
 task("vanity_token", "Tries to find a vanity address for the token contract")
     .addParam("prefix", "Prefix with which the address should start", "", types.string, true)
     .addParam("postfix", "Postfix with which the address should end", "", types.string, true)
-    .addParam("offset", "Salt starting offset", 0, types.float, true)
-    .addParam("step", "Salt step size", 1, types.float, true)
+    .addParam("offset", "Salt starting offset", 0, types.string, true)
+    .addParam("step", "Salt step size", 1, types.string, true)
     .addParam("tries", "Maxiumum tries", -1, types.float, true)
     .setAction(async (taskArgs, hre) => {
         const deployerAddress = await getDeployerAddress(hre);
@@ -50,6 +50,7 @@ task("vanity_token", "Tries to find a vanity address for the token contract")
         const cleanPrefix = taskArgs.prefix.toLowerCase()
         const cleanPostfix = taskArgs.postfix.toLowerCase()
         let saltNumeric = BigNumber.from(taskArgs.offset);
+        let step = BigNumber.from(taskArgs.step);
         let found = 0
         let tries = 0
         while (taskArgs.tries < 0 || tries < taskArgs.tries) {
@@ -65,7 +66,7 @@ task("vanity_token", "Tries to find a vanity address for the token contract")
                 found++
                 console.log(targetAddress, encodedSalt)
             }
-            saltNumeric = saltNumeric.add(taskArgs.step)
+            saltNumeric = saltNumeric.add(step)
             tries++
             if (tries%10000 == 0) console.log("0x", cleanPrefix, "...", cleanPostfix, "@ salt", saltNumeric.toString(), "found", found)
         }
