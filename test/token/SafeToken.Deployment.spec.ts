@@ -8,11 +8,11 @@ describe("SafeToken - Deployment", async () => {
 
     describe("state", async () => {
 
-        it.skip('should be deployed deterministically', async () => {
+        it('should be deployed deterministically', async () => {
             const { token } = await setupTokenTests()
             expect(
                 token.address
-            ).to.be.eq("0x164FF0341AC389F4989FB4F22Fae4401BceA547D")
+            ).to.be.eq("0x5aFE3855358E112B5647B952709E6165e1c1eEEe")
         })
 
         it('should return correct details', async () => {

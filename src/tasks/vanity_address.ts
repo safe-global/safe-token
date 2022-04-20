@@ -37,8 +37,8 @@ task("check_vanity_token", "Calculates an address for a salt")
 task("vanity_token", "Tries to find a vanity address for the token contract")
     .addParam("prefix", "Prefix with which the address should start", "", types.string, true)
     .addParam("postfix", "Postfix with which the address should end", "", types.string, true)
-    .addParam("offset", "Salt starting offset", 0, types.string, true)
-    .addParam("step", "Salt step size", 1, types.string, true)
+    .addParam("offset", "Salt starting offset", "0", types.string, true)
+    .addParam("step", "Salt step size", "1", types.string, true)
     .addParam("tries", "Maxiumum tries", -1, types.float, true)
     .setAction(async (taskArgs, hre) => {
         const deployerAddress = await getDeployerAddress(hre);

@@ -14,7 +14,7 @@ const deploy: DeployFunction = async function (
     from: deployer,
     args: [nameToAddress("Safe Foundation")],
     log: true,
-    salt: "0x00",
+    salt: "0x00000000000000000000000000000000000000000000000000000000236dd1d0",
   });
   console.log("Address", deploymentConfig.address)
   const deployment = await deploymentConfig.deploy()
