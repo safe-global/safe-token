@@ -8,14 +8,16 @@ const deploy: DeployFunction = async function (
 ) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
-  const { deploy } = deployments;
+  const { deterministic } = deployments;
 
-  const deployment = await deploy("SafeToken", {
+  const deploymentConfig = await deterministic("SafeToken", {
     from: deployer,
     args: [nameToAddress("Safe Foundation")],
     log: true,
-    deterministicDeployment: true,
+    salt: "0x00000000000000000000000000000000000000000000000000000000236dd1d0",
   });
+  console.log("Address", deploymentConfig.address)
+  const deployment = await deploymentConfig.deploy()
   console.log("Gas used for token deployment:", deployment?.receipt?.gasUsed?.toString())
   console.log("Token deployed to", deployment.address)
 };

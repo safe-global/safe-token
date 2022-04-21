@@ -18,7 +18,7 @@ const argv = yargs
 
 // Load environment variables.
 dotenv.config();
-const { NODE_URL, INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK, SOLIDITY_VERSION, SOLIDITY_SETTINGS, USE_COMMUNITY_FACTORY } = process.env;
+const { NODE_URL, INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK, SOLIDITY_VERSION, SOLIDITY_SETTINGS, USE_SAFE_SINGLETON_FACTORY } = process.env;
 
 const DEFAULT_MNEMONIC =
   "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
@@ -39,6 +39,7 @@ if (["mainnet", "rinkeby", "kovan", "goerli"].includes(argv.network) && INFURA_K
 }
 
 import "./src/tasks/local_verify"
+import "./src/tasks/vanity_address"
 import "./src/tasks/deploy_contracts"
 import "./src/tasks/show_codesize"
 import { BigNumber } from "@ethersproject/bignumber";
@@ -46,7 +47,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 const primarySolidityVersion = SOLIDITY_VERSION || "0.8.11"
 const soliditySettings = !!SOLIDITY_SETTINGS ? JSON.parse(SOLIDITY_SETTINGS) : undefined
 
-const deterministicDeployment = USE_COMMUNITY_FACTORY === "true" ? undefined :
+const deterministicDeployment = USE_SAFE_SINGLETON_FACTORY === "true" ?
   (network: string) => {
     const info = getSingletonFactoryInfo(parseInt(network))
     if (!info) throw Error(`Singleton Factory not found for network ${network}`)
@@ -56,7 +57,7 @@ const deterministicDeployment = USE_COMMUNITY_FACTORY === "true" ? undefined :
       funding: BigNumber.from(info.gasLimit).mul(BigNumber.from(info.gasPrice)).toString(),
       signedTx: info.transaction
     }
-  }
+  } : undefined
 
 const userConfig: HardhatUserConfig = {
   paths: {
