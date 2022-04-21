@@ -8,7 +8,8 @@ describe("SafeToken - Deployment", async () => {
 
     describe("state", async () => {
 
-        it('should be deployed deterministically', async () => {
+        it('should be deployed deterministically', async function () {
+            if (process.env.RUNS_COVERAGE === "true") this.skip()
             const { token } = await setupTokenTests()
             expect(
                 token.address
