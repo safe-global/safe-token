@@ -41,12 +41,20 @@ describe("VestingPool - Setup", async () => {
             const { pool, token } = await setupTests()
             const vestingAmount = ethers.utils.parseUnits("200000", 18)
             const currentTime = (await ethers.provider.getBlock("latest")).timestamp
-            // 1h in the future
-            const targetTime = currentTime + 3600
             await token.transfer(pool.address, vestingAmount)
             await expect(
-                pool.addVesting(user2.address, 2, true, 104, currentTime, ethers.utils.parseUnits("200000", 18))
+                pool.addVesting(user2.address, 2, true, 104, currentTime, vestingAmount)
             ).to.be.revertedWith("Invalid vesting curve")
+        })
+
+        it('should revert if vesting is added for zero address', async () => {
+            const { pool, token } = await setupTests()
+            const currentTime = (new Date()).getTime()
+            const vestingAmount = ethers.utils.parseUnits("200000", 18)
+            await token.transfer(pool.address, vestingAmount)
+            await expect(
+                pool.addVesting(ethers.constants.AddressZero, 0, true, 104, currentTime, vestingAmount)
+            ).to.be.revertedWith("Invalid account")
         })
 
         it('should revert if same vesting is added twice', async () => {
