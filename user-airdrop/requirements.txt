@@ -1,0 +1,2 @@
+pycoingecko
+etherscan-python
