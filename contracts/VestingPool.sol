@@ -84,6 +84,7 @@ contract VestingPool {
 
     /// @notice Create a vesting on this pool for `account`.
     /// @dev It is required that the pool has enough tokens available
+    /// @dev Account cannot be zero address
     /// @param account The account for which the vesting is created
     /// @param curveType Type of the curve that should be used for the vesting
     /// @param managed Boolean that indicates if the vesting can be managed by the pool manager
@@ -99,6 +100,7 @@ contract VestingPool {
         uint64 startDate,
         uint128 amount
     ) internal returns (bytes32 vestingId) {
+        require(account != address(0), "Invalid account");
         require(curveType < 2, "Invalid vesting curve");
         vestingId = vestingHash(account, curveType, managed, durationWeeks, startDate, amount);
         require(vestings[vestingId].account == address(0), "Vesting id already used");
