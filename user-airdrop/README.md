@@ -7,6 +7,8 @@ This is a collection of scripts and csv files to determine eligibility for the S
 - Reward early users more than later users.
 - Find a distribution that doesn't produce just a small number of big players.
 - Find a good balance between rewarding usage and value of stored assets.
+- Distribute tokens to users that are interested in the long term success of the Safe (as opposed to dump the token right away)
+- Distribute tokens to users that are willing to particpate in Safe governance.
 
 ### Overview of distribution
 
