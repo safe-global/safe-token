@@ -136,7 +136,7 @@ contract VestingPool {
         uint128 tokensToClaim
     ) public {
         require(beneficiary != address(0), "Cannot claim to 0-address");
-        Vesting memory vesting = vestings[vestingId];
+        Vesting storage vesting = vestings[vestingId];
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
         uint128 availableClaim = _calculateVestedAmount(vesting) - vesting.amountClaimed;
@@ -146,7 +146,6 @@ contract VestingPool {
         // Adjust how many tokens are locked in vesting
         totalTokensInVesting -= claimAmount;
         vesting.amountClaimed += claimAmount;
-        vestings[vestingId] = vesting;
         require(IERC20(token).transfer(beneficiary, claimAmount), "Token transfer failed");
         emit ClaimedVesting(vestingId, vesting.account, beneficiary);
     }
@@ -156,7 +155,7 @@ contract VestingPool {
     /// @dev Only manageable vestings can be cancelled
     /// @param vestingId Id of the vesting that should be cancelled
     function cancelVesting(bytes32 vestingId) public onlyPoolManager {
-        Vesting memory vesting = vestings[vestingId];
+        Vesting storage vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
         require(vesting.managed, "Only managed vestings can be cancelled");
         require(!vesting.cancelled, "Vesting already cancelled");
@@ -172,7 +171,6 @@ contract VestingPool {
         totalTokensInVesting -= unusedToken;
         // Vesting is set to cancelled and therefore disallows unpausing
         vesting.cancelled = true;
-        vestings[vestingId] = vesting;
         emit CancelledVesting(vestingId);
     }
 
@@ -181,13 +179,12 @@ contract VestingPool {
     /// @dev Only manageable vestings can be paused
     /// @param vestingId Id of the vesting that should be paused
     function pauseVesting(bytes32 vestingId) public onlyPoolManager {
-        Vesting memory vesting = vestings[vestingId];
+        Vesting storage vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
         require(vesting.managed, "Only managed vestings can be paused");
         require(vesting.pausingDate == 0, "Vesting already paused");
         // pausingDate should always be larger or equal to startDate
         vesting.pausingDate = block.timestamp <= vesting.startDate ? vesting.startDate : uint64(block.timestamp);
-        vestings[vestingId] = vesting;
         emit PausedVesting(vestingId);
     }
 
@@ -196,7 +193,7 @@ contract VestingPool {
     /// @dev Only vestings that have not been cancelled can be unpaused
     /// @param vestingId Id of the vesting that should be unpaused
     function unpauseVesting(bytes32 vestingId) public onlyPoolManager {
-        Vesting memory vesting = vestings[vestingId];
+        Vesting storage vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
         require(vesting.pausingDate != 0, "Vesting is not paused");
         require(!vesting.cancelled, "Vesting has been cancelled and cannot be unpaused");
@@ -206,7 +203,6 @@ contract VestingPool {
         // Offset the start date to create the effect of pausing
         vesting.startDate = vesting.startDate + timePaused;
         vesting.pausingDate = 0;
-        vestings[vestingId] = vesting;
         emit UnpausedVesting(vestingId);
     }
 
@@ -216,7 +212,7 @@ contract VestingPool {
     /// @return vestedAmount The amount in atoms of tokens vested
     /// @return claimedAmount The amount in atoms of tokens claimed
     function calculateVestedAmount(bytes32 vestingId) external view returns (uint128 vestedAmount, uint128 claimedAmount) {
-        Vesting memory vesting = vestings[vestingId];
+        Vesting storage vesting = vestings[vestingId];
         require(vesting.account != address(0), "Vesting not found");
         vestedAmount = _calculateVestedAmount(vesting);
         claimedAmount = vesting.amountClaimed;
@@ -226,7 +222,7 @@ contract VestingPool {
     /// @dev This will revert if the vesting has not been started yet
     /// @param vesting The vesting for which to calculate the amounts
     /// @return vestedAmount The amount in atoms of tokens vested
-    function _calculateVestedAmount(Vesting memory vesting) internal view returns (uint128 vestedAmount) {
+    function _calculateVestedAmount(Vesting storage vesting) internal view returns (uint128 vestedAmount) {
         require(vesting.startDate <= block.timestamp, "Vesting not active yet");
         // Convert vesting duration to seconds
         uint64 durationSeconds = uint64(vesting.durationWeeks) * 7 * 24 * 60 * 60;

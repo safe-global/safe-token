@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getVestingPoolContract } from "../utils/setup";
 import { BigNumber, BigNumberish, Contract } from "ethers";
 import { setNextBlockTime } from "../utils/state";
+import { logGas } from "../utils/gas";
 
 describe("VestingPool - Manage", async () => {
 
@@ -87,7 +88,7 @@ describe("VestingPool - Manage", async () => {
             const { vestingHash } = await addVesting(pool, token, vestingAmount, targetTime)
 
             await expect(
-                pool.pauseVesting(vestingHash)
+                logGas("pause vesting", pool.pauseVesting(vestingHash))
             ).to.emit(pool, "PausedVesting").withArgs(vestingHash)
             const lastBlockTime = (await ethers.provider.getBlock("latest")).timestamp
             const vesting = await pool.vestings(vestingHash)
@@ -219,7 +220,7 @@ describe("VestingPool - Manage", async () => {
 
             await setNextBlockTime(targetTime + 14000)
             await expect(
-                pool.unpauseVesting(vestingHash)
+                logGas("unpause vesting", pool.unpauseVesting(vestingHash))
             ).to.emit(pool, "UnpausedVesting").withArgs(vestingHash)
             vesting = await pool.vestings(vestingHash)
             // If vesting that starts in the future is paused then the pausing date is the start date
@@ -260,7 +261,7 @@ describe("VestingPool - Manage", async () => {
             expect(await pool.totalTokensInVesting()).to.be.eq(vestingAmount)
 
             await expect(
-                pool.cancelVesting(vestingHash)
+                logGas("cancel vesting", pool.cancelVesting(vestingHash))
             ).to.emit(pool, "CancelledVesting").withArgs(vestingHash)
 
             vesting = await pool.vestings(vestingHash)
