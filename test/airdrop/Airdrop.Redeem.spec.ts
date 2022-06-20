@@ -162,7 +162,7 @@ describe("Airdrop - Redeem", async () => {
                 .to.emit(airdrop, "AddedVesting").withArgs(vestingHash, user1.address)
         })
 
-        it('can claim all vestings', async () => {
+        it('can redeem all vestings', async () => {
             const { airdrop, token } = await setupTests()
             const amount = ethers.utils.parseUnits("200000", 18)
             const { root, elements } = await generateAirdrop(airdrop, amount)
