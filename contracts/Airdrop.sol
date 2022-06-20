@@ -14,7 +14,11 @@ contract Airdrop is VestingPool {
     // Time until which the airdrop can be redeemed
     uint64 public immutable redeemDeadline;
 
-    constructor(address _token, address _manager, uint64 _redeemDeadline) VestingPool(_token, _manager) {
+    constructor(
+        address _token,
+        address _manager,
+        uint64 _redeemDeadline
+    ) VestingPool(_token, _manager) {
         redeemDeadline = _redeemDeadline;
     }
 
@@ -63,7 +67,12 @@ contract Airdrop is VestingPool {
         uint128 tokensClaimed = updateClaimedTokens(vestingId, beneficiary, tokensToClaim);
         uint256 balancePoolBefore = IERC20(token).balanceOf(address(this));
         uint256 balanceBeneficiaryBefore = IERC20(token).balanceOf(beneficiary);
-        bytes memory transferData = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(this), beneficiary, tokensClaimed);
+        bytes memory transferData = abi.encodeWithSignature(
+            "transferFrom(address,address,uint256)",
+            address(this),
+            beneficiary,
+            tokensClaimed
+        );
         require(ModuleManager(poolManager).execTransactionFromModule(token, 0, transferData, 0), "Module transaction failed");
         uint256 balancePoolAfter = IERC20(token).balanceOf(address(this));
         uint256 balanceBeneficiaryAfter = IERC20(token).balanceOf(beneficiary);
@@ -74,9 +83,7 @@ contract Airdrop is VestingPool {
     /// @notice Claims all tokens that have not been redeemed before `redeemDeadline`
     /// @dev Can only be called after `redeemDeadline` has been reached.
     /// @param beneficiary Account that should receive the claimed tokens
-    function claimUnusedTokens(
-        address beneficiary
-    ) external onlyPoolManager {
+    function claimUnusedTokens(address beneficiary) external onlyPoolManager {
         require(block.timestamp > redeemDeadline, "Tokens can still be redeemed");
         uint256 unusedTokens = tokensAvailableForVesting();
         require(IERC20(token).transfer(beneficiary, unusedTokens), "Token transfer failed");
