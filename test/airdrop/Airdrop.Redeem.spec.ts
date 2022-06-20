@@ -6,6 +6,7 @@ import { Vesting } from "../../src/utils/types";
 import { calculateVestingHash } from "../../src/utils/hash";
 import { BigNumber, Contract } from "ethers";
 import { generateRoot, generateProof } from "../../src/utils/proof";
+import { setNextBlockTime } from "../utils/state";
 
 describe("Airdrop - Redeem", async () => {
 
@@ -139,6 +140,28 @@ describe("Airdrop - Redeem", async () => {
                     proof
                 )
             ).to.be.revertedWith("Vesting id already used")
+        })
+
+        it('should revert if redeemed after deadline', async () => {
+            const { airdrop, token } = await setupTests()
+            const amount = ethers.utils.parseUnits("200000", 18)
+            const { root, elements } = await generateAirdrop(airdrop, amount)
+            await airdrop.initializeRoot(root)
+            await token.transfer(airdrop.address, amount.mul(2))
+            const vesting = createVesting(user1.address, amount)
+            const vestingHash = calculateVestingHash(airdrop, vesting, await getChainId())
+            const proof = generateProof(elements, vestingHash)
+            await setNextBlockTime(redeemDeadline + 1)
+            await expect(
+                airdrop.redeem(
+                    vesting.curveType,
+                    vesting.durationWeeks,
+                    vesting.startDate,
+                    vesting.amount,
+                    proof
+                )
+            )
+                .to.be.revertedWith("Deadline to redeem vesting has been exceeded")
         })
 
         it('will add vesting', async () => {
