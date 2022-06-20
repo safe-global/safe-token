@@ -86,6 +86,7 @@ contract Airdrop is VestingPool {
     function claimUnusedTokens(address beneficiary) external onlyPoolManager {
         require(block.timestamp > redeemDeadline, "Tokens can still be redeemed");
         uint256 unusedTokens = tokensAvailableForVesting();
+        require(unusedTokens > 0, "No tokens to claim");
         require(IERC20(token).transfer(beneficiary, unusedTokens), "Token transfer failed");
     }
 
