@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getMock, getTestTokenContract, getVestingPoolContract } from "../utils/setup";
 import { BigNumber, BigNumberish, Contract } from "ethers";
 import { setNextBlockTime } from "../utils/state";
+import { logGas } from "../utils/gas";
 
 describe("VestingPool - Claim", async () => {
 
@@ -140,7 +141,7 @@ describe("VestingPool - Claim", async () => {
             await setNextBlockTime(targetTime + WEEK_IN_SECONDS)
             const claimAmount = vestingAmount.div(2)
             await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, claimAmount)
+                logGas("claim vesting", pool.claimVestedTokens(vestingHash, user1.address, claimAmount))
             )
                 .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
                 .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, claimAmount)
