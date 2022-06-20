@@ -142,7 +142,7 @@ contract VestingPool {
     /// @notice Update `amountClaimed` on vesting `vestingId` by `tokensToClaim` tokens.
     /// @dev This can only be called by the owner of the vesting
     /// @dev Beneficiary cannot be the 0-address
-    /// @dev This will trigger a transfer of tokens
+    /// @dev This will only update the internal state and NOT trigger the transfer of tokens.
     /// @param vestingId Id of the vesting from which the tokens should be claimed
     /// @param beneficiary Account that should receive the claimed tokens
     /// @param tokensToClaim Amount of tokens to claim in atoms or max uint128 to claim all available
