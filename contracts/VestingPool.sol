@@ -123,7 +123,7 @@ contract VestingPool {
         emit AddedVesting(vestingId, account);
     }
 
-    /// @notice Claim `tokensToClaim` tokens from vesting `vestingId`.
+    /// @notice Claim `tokensToClaim` tokens from vesting `vestingId` and transfer them to the `beneficiary`.
     /// @dev This can only be called by the owner of the vesting
     /// @dev Beneficiary cannot be the 0-address
     /// @dev This will trigger a transfer of tokens
@@ -135,18 +135,34 @@ contract VestingPool {
         address beneficiary,
         uint128 tokensToClaim
     ) public {
+        uint128 tokensClaimed = updateClaimedTokens(vestingId, beneficiary, tokensToClaim);
+        require(IERC20(token).transfer(beneficiary, tokensClaimed), "Token transfer failed");
+    }
+
+    /// @notice Update `amountClaimed` on vesting `vestingId` by `tokensToClaim` tokens.
+    /// @dev This can only be called by the owner of the vesting
+    /// @dev Beneficiary cannot be the 0-address
+    /// @dev This will trigger a transfer of tokens
+    /// @param vestingId Id of the vesting from which the tokens should be claimed
+    /// @param beneficiary Account that should receive the claimed tokens
+    /// @param tokensToClaim Amount of tokens to claim in atoms or max uint128 to claim all available
+    /// @param tokensClaimed Amount of tokens that have been newly claimed by calling this method
+    function updateClaimedTokens(
+        bytes32 vestingId,
+        address beneficiary,
+        uint128 tokensToClaim
+    ) internal returns (uint128 tokensClaimed) {
         require(beneficiary != address(0), "Cannot claim to 0-address");
         Vesting storage vesting = vestings[vestingId];
         require(vesting.account == msg.sender, "Can only be claimed by vesting owner");
         // Calculate how many tokens can be claimed
         uint128 availableClaim = _calculateVestedAmount(vesting) - vesting.amountClaimed;
         // If max uint128 is used, claim all available tokens.
-        uint128 claimAmount = tokensToClaim == type(uint128).max ? availableClaim : tokensToClaim;
-        require(claimAmount <= availableClaim, "Trying to claim too many tokens");
+        tokensClaimed = tokensToClaim == type(uint128).max ? availableClaim : tokensToClaim;
+        require(tokensClaimed <= availableClaim, "Trying to claim too many tokens");
         // Adjust how many tokens are locked in vesting
-        totalTokensInVesting -= claimAmount;
-        vesting.amountClaimed += claimAmount;
-        require(IERC20(token).transfer(beneficiary, claimAmount), "Token transfer failed");
+        totalTokensInVesting -= tokensClaimed;
+        vesting.amountClaimed += tokensClaimed;
         emit ClaimedVesting(vestingId, vesting.account, beneficiary);
     }
 
