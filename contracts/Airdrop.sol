@@ -3,17 +3,22 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./vendor/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "./interfaces/ModuleManager.sol";
 import "./VestingPool.sol";
 
-// TODO: add possibility to claim tokens when airdrop is expired
 /// @title Airdrop contract
 /// @author Richard Meissner - @rmeissner
 contract Airdrop is VestingPool {
+    // Root of the Merkle tree
     bytes32 public root;
+    // Time until which the airdrop can be redeemed
+    uint64 public immutable redeemDeadline;
 
-    constructor(address token, address manager) VestingPool(token, manager) {}
+    constructor(address _token, address _manager, uint64 _redeemDeadline) VestingPool(_token, _manager) {
+        redeemDeadline = _redeemDeadline;
+    }
 
-    /// @notice Intialize the airdrop with `_root` as the Merkle root.
+    /// @notice Initialize the airdrop with `_root` as the Merkle root.
     /// @dev This can only be called once
     /// @param _root The Merkle root that should be set for this contract
     function initializeRoot(bytes32 _root) public onlyPoolManager {
@@ -21,41 +26,60 @@ contract Airdrop is VestingPool {
         root = _root;
     }
 
-    // TODO: add redeem multiple for same account
-    // TODO: add expiration time
-    /// @notice Immediatelly redeems `amount` tokens and creates a vesting for the same amount.
+    /// @notice Creates a vesting authorized by the Merkle proof.
     /// @dev It is required that the pool has enough tokens available
-    /// @dev This will trigger a transfer of tokens
-    /// @param account The account for which the vesting is created
+    /// @dev Vesting will be created for msg.sender
     /// @param curveType Type of the curve that should be used for the vesting
     /// @param durationWeeks The duration of the vesting in weeks
     /// @param startDate The date when the vesting should be started (can be in the past)
     /// @param amount Amount of tokens that should be vested in atoms
     /// @param proof Proof to redeem tokens
     function redeem(
-        address account,
         uint8 curveType,
         uint16 durationWeeks,
         uint64 startDate,
         uint128 amount,
         bytes32[] calldata proof
     ) external {
-        // TODO: only account be able to claim (e.g. require(account == msg.sender))
+        require(block.timestamp <= redeemDeadline, "Deadline to redeem vesting has been exceeded");
         require(root != bytes32(0), "State root not initialized");
-        // Add vesting will fail if the vesting was already created
-        bytes32 vestingId = _addVesting(account, curveType, false, durationWeeks, startDate, amount);
+        // This call will fail if the vesting was already created
+        bytes32 vestingId = _addVesting(msg.sender, curveType, false, durationWeeks, startDate, amount);
         require(MerkleProof.verify(proof, root, vestingId), "Invalid merkle proof");
-        // TODO: remove, this can be achieved via an additional vesting
-        require(IERC20(token).transfer(account, amount), "Could not transfer token");
     }
 
-    /// @notice Calculate the amount of tokens available for new vestings.
-    /// @dev This value changes when more tokens are deposited to this contract
-    /// @dev The value is halfed as the same amount vested is also immediately redeemed
-    /// @return Amount of tokens that can be used for new vestings.
-    function tokensAvailableForVesting() public view override returns (uint256) {
-        // TODO: adjust when additional transfer is removed
-        return (IERC20(token).balanceOf(address(this)) - totalTokensInVesting) / 2;
+    /// @notice Claim `tokensToClaim` tokens from vesting `vestingId` and transfer them to the `beneficiary`.
+    /// @dev This can only be called by the owner of the vesting
+    /// @dev Beneficiary cannot be the 0-address
+    /// @dev This will trigger a transfer of tokens via a module transaction
+    /// @param vestingId Id of the vesting from which the tokens should be claimed
+    /// @param beneficiary Account that should receive the claimed tokens
+    /// @param tokensToClaim Amount of tokens to claim in atoms or max uint128 to claim all available
+    function claimVestedTokensViaModule(
+        bytes32 vestingId,
+        address beneficiary,
+        uint128 tokensToClaim
+    ) public {
+        uint128 tokensClaimed = updateClaimedTokens(vestingId, beneficiary, tokensToClaim);
+        uint256 balancePoolBefore = IERC20(token).balanceOf(address(this));
+        uint256 balanceBeneficiaryBefore = IERC20(token).balanceOf(beneficiary);
+        bytes memory transferData = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(this), beneficiary, tokensClaimed);
+        require(ModuleManager(poolManager).execTransactionFromModule(token, 0, transferData, 0), "Module transaction failed");
+        uint256 balancePoolAfter = IERC20(token).balanceOf(address(this));
+        uint256 balanceBeneficiaryAfter = IERC20(token).balanceOf(beneficiary);
+        require(balancePoolAfter == balancePoolBefore - tokensClaimed, "Could not deduct tokens from pool");
+        require(balanceBeneficiaryAfter == balanceBeneficiaryBefore + tokensClaimed, "Could not add tokens to beneficiary");
+    }
+
+    /// @notice Claims all tokens that have not been redeemed before `redeemDeadline`
+    /// @dev Can only be called after `redeemDeadline` has been reached.
+    /// @param beneficiary Account that should receive the claimed tokens
+    function claimUnusedTokens(
+        address beneficiary
+    ) external onlyPoolManager {
+        require(block.timestamp > redeemDeadline, "Tokens can still be redeemed");
+        uint256 unusedTokens = tokensAvailableForVesting();
+        require(IERC20(token).transfer(beneficiary, unusedTokens), "Token transfer failed");
     }
 
     /// @dev This method cannot be called on this contract
