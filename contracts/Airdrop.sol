@@ -65,15 +65,21 @@ contract Airdrop is VestingPool {
         uint128 tokensToClaim
     ) public {
         uint128 tokensClaimed = updateClaimedTokens(vestingId, beneficiary, tokensToClaim);
+        // Approve pool manager to transfer tokens on behalf of the pool
+        require(IERC20(token).approve(poolManager, tokensClaimed), "Could not approve tokens");
+        // Check state prior to transfer
         uint256 balancePoolBefore = IERC20(token).balanceOf(address(this));
         uint256 balanceBeneficiaryBefore = IERC20(token).balanceOf(beneficiary);
+        // Build transfer data to call token contract via the pool manager
         bytes memory transferData = abi.encodeWithSignature(
             "transferFrom(address,address,uint256)",
             address(this),
             beneficiary,
             tokensClaimed
         );
+        // Trigger transfer of tokens from this pool to the beneficiary via the pool manager as a module transaction
         require(ModuleManager(poolManager).execTransactionFromModule(token, 0, transferData, 0), "Module transaction failed");
+        // Check state after the transfer
         uint256 balancePoolAfter = IERC20(token).balanceOf(address(this));
         uint256 balanceBeneficiaryAfter = IERC20(token).balanceOf(beneficiary);
         require(balancePoolAfter == balancePoolBefore - tokensClaimed, "Could not deduct tokens from pool");
