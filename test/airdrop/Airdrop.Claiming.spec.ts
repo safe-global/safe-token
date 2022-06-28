@@ -13,7 +13,7 @@ describe("Airdrop - Claiming", async () => {
 
     const vestingDurationInWeeks = 208
     const vestingDuration = vestingDurationInWeeks * 7 * 24 * 60 * 60
-    const currentTime = Math.floor((new Date()).getTime() / 1000)
+    const currentTime = Math.floor((new Date()).getTime() / 1000) + 1000
     const vestingStart = currentTime - vestingDuration / 2
     const vestingEnd = currentTime + vestingDuration / 2
     const redeemDeadline = currentTime + 60 * 60
@@ -373,6 +373,7 @@ describe("Airdrop - Claiming", async () => {
             expect(vesting.amountClaimed).to.be.eq(0)
 
             const claimAmount = amount.div(2)
+            await setNextBlockTime(currentTime)
             await expect(
                 logGas("claim vesting", airdrop.claimVestedTokensViaModule(vestingHash, user1.address, claimAmount))
             )
@@ -383,6 +384,7 @@ describe("Airdrop - Claiming", async () => {
             expect(vesting.amountClaimed).to.be.eq(claimAmount)
             const { vestedAmount, claimedAmount } = await airdrop.calculateVestedAmount(vestingHash)
             expect(claimAmount.lte(vestedAmount)).to.be.true
+            expect(claimAmount).to.be.eq(vestedAmount)
             expect(claimedAmount).to.be.eq(claimAmount)
             expect(
                 await token.allowance(airdrop.address, executor.address)
@@ -453,111 +455,291 @@ describe("Airdrop - Claiming", async () => {
             ).to.be.eq(0)
         })
 
-        /*
-        it('can claim tokens when vesting is paused', async () => {
-            const { pool, token } = await setupTests()
-
-            const vestingAmount = ethers.utils.parseUnits("1000", 18)
-            const currentTime = (await ethers.provider.getBlock("latest")).timestamp
-            // 1h in the future
-            const targetTime = currentTime + 3600
-            const { vestingHash } = await addVesting(pool, token, vestingAmount, targetTime)
-            let vesting = await pool.vestings(vestingHash)
-            expect(vesting.amount).to.be.eq(vestingAmount)
-            expect(vesting.amountClaimed).to.be.eq(0)
-
-            // Pause vesting after half of the amount is vested
-            await setNextBlockTime(targetTime + WEEK_IN_SECONDS)
-            await pool.pauseVesting(vestingHash)
-            let amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount.div(2))
-            expect(amounts.claimedAmount).to.be.eq(0)
-
-            // Claim available tokens
-            await setNextBlockTime(targetTime + 2 * WEEK_IN_SECONDS)
-            await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, MAX_UINT128)
-            )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, vestingAmount.div(2))
-
-            // Check that no additional tokens have been vested
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount.div(2))
-            expect(amounts.claimedAmount).to.be.eq(vestingAmount.div(2))
-
-            // Unpause the vesting after 2 weeks have elapsed
-            await setNextBlockTime(targetTime + 3 * WEEK_IN_SECONDS)
-            await pool.unpauseVesting(vestingHash)
-            // Check that no additional tokens have been vested during pause
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount.div(2))
-            expect(amounts.claimedAmount).to.be.eq(vestingAmount.div(2))
-
-            // Claim all tokens after vesting has been completed
-            await setNextBlockTime(targetTime + 4 * WEEK_IN_SECONDS)
-            await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, MAX_UINT128)
-            )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, vestingAmount.div(2))
-
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount)
-            expect(amounts.claimedAmount).to.be.eq(vestingAmount)
-        })
-
         it('can claim available tokens multiple times to different accounts', async () => {
-            const { pool, token } = await setupTests()
+            const { airdrop, token, executor } = await setupTests()
 
-            const vestingAmount = ethers.utils.parseUnits("1000", 18)
-            const currentTime = (await ethers.provider.getBlock("latest")).timestamp
-            // 1h in the future
-            const targetTime = currentTime + 3600
-            const { vestingHash } = await addVesting(pool, token, vestingAmount, targetTime)
-            let vesting = await pool.vestings(vestingHash)
-            expect(vesting.amount).to.be.eq(vestingAmount)
+            await executor.enableModule(airdrop.address)
+            const amount = ethers.utils.parseUnits("1000", 18)
+            
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            let vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
             expect(vesting.amountClaimed).to.be.eq(0)
 
-            await setNextBlockTime(targetTime + WEEK_IN_SECONDS)
-            const claimAmount = vestingAmount.div(4)
-            await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, claimAmount)
-            )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, claimAmount)
-            let amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount.div(2))
-            expect(amounts.claimedAmount).to.be.eq(claimAmount)
+            await setNextBlockTime(currentTime)
 
+            const claimAmount = amount.div(4)
             await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, claimAmount)
+                airdrop.claimVestedTokensViaModule(vestingHash, user1.address, claimAmount)
             )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, claimAmount)
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.gt(vestingAmount.div(2))
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            let amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount.div(2))
+            expect(amounts.claimedAmount).to.be.eq(claimAmount)
+            await expect(
+                airdrop.claimVestedTokensViaModule(vestingHash, user1.address, claimAmount)
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.gt(amount.div(2))
             expect(amounts.claimedAmount).to.be.eq(claimAmount.mul(2))
 
-            await setNextBlockTime(targetTime + 2 * WEEK_IN_SECONDS)
+            await setNextBlockTime(vestingEnd)
             await expect(
-                pool.claimVestedTokens(vestingHash, user2.address, claimAmount)
+                airdrop.claimVestedTokensViaModule(vestingHash, user2.address, claimAmount)
             )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user2.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user2.address, claimAmount)
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount)
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user2.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user2.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount)
             expect(amounts.claimedAmount).to.be.eq(claimAmount.mul(3))
 
             await expect(
-                pool.claimVestedTokens(vestingHash, user1.address, claimAmount)
+                airdrop.claimVestedTokensViaModule(vestingHash, user1.address, claimAmount)
             )
-                .to.emit(pool, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
-                .and.to.emit(token, "Transfer").withArgs(pool.address, user1.address, claimAmount)
-            amounts = await pool.calculateVestedAmount(vestingHash)
-            expect(amounts.vestedAmount).to.be.eq(vestingAmount)
-            expect(amounts.claimedAmount).to.be.eq(vestingAmount)
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount)
+            expect(amounts.claimedAmount).to.be.eq(amount)
+
+            vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(amount)
         })
-        */
+    })
+
+    describe("claimVestedTokens", async () => {
+
+        const MAX_UINT128 = BigNumber.from("0xffffffffffffffffffffffffffffffff")
+
+        it('should revert if not vesting owner', async () => {
+            const { airdrop } = await setupTests()
+            const vestingHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("test"))
+            const user2Airdrop = airdrop.connect(user2)
+            await expect(
+                user2Airdrop.claimVestedTokens(vestingHash, user1.address, MAX_UINT128)
+            ).to.be.revertedWith("Can only be claimed by vesting owner")
+        })
+
+        it('should revert if beneficiary is 0-address', async () => {
+            const { airdrop } = await setupTests()
+            const vestingHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("test"))
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, ethers.constants.AddressZero, MAX_UINT128)
+            ).to.be.revertedWith("Cannot claim to 0-address")
+        })
+
+        it('should revert if claiming too many tokens', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            await setNextBlockTime(currentTime + 3600)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, amount)
+            ).to.be.revertedWith("Trying to claim too many tokens")
+        })
+
+        it('should revert if token transfer fails', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            await token.pause()
+            await setNextBlockTime(vestingEnd)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, amount)
+            ).to.be.revertedWith("SafeToken: token transfer while paused")
+        })
+
+        it('should revert if vesting is not active yet', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingEnd, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount, vestingEnd)
+
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, MAX_UINT128)
+            ).to.be.revertedWith("Vesting not active yet")
+        })
+
+        it('should revert if token transfer reverts', async () => {
+            const { mock, airdrop, token, executor } = await setupMockedTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            await mock.givenMethodReturnUint(token.interface.getSighash("balanceOf"), amount)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            await mock.givenMethodRevertWithMessage(token.interface.getSighash("transfer"), "Token: Transfer failed!")
+            await setNextBlockTime(vestingEnd)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, MAX_UINT128)
+            ).to.be.revertedWith("Token: Transfer failed!")
+        })
+
+        it('can claim available tokens while vesting is running', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            let vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(0)
+
+            const claimAmount = amount.div(2)
+            await setNextBlockTime(currentTime)
+            await expect(
+                logGas("claim vesting", airdrop.claimVestedTokens(vestingHash, user1.address, claimAmount))
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(claimAmount)
+            const { vestedAmount, claimedAmount } = await airdrop.calculateVestedAmount(vestingHash)
+            expect(claimAmount.lte(vestedAmount)).to.be.true
+            expect(claimAmount).to.be.eq(vestedAmount)
+            expect(claimedAmount).to.be.eq(claimAmount)
+            expect(
+                await token.allowance(airdrop.address, executor.address)
+            ).to.be.eq(0)
+        })
+
+        it('can claim all tokens after vesting is completed', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            let vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(0)
+
+            await setNextBlockTime(vestingEnd)
+
+            await expect(
+                logGas("claim vesting", airdrop.claimVestedTokens(vestingHash, user1.address, MAX_UINT128))
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, amount)
+
+            vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(amount)
+            const { vestedAmount, claimedAmount } = await airdrop.calculateVestedAmount(vestingHash)
+            expect(vestedAmount).to.be.eq(amount)
+            expect(claimedAmount).to.be.eq(amount)
+            expect(
+                await token.allowance(airdrop.address, executor.address)
+            ).to.be.eq(0)
+        })
+
+        it('can claim available tokens to different account', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            let vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(0)
+
+            await setNextBlockTime(vestingEnd)
+
+            await expect(
+                logGas("claim vesting", airdrop.claimVestedTokens(vestingHash, user2.address, MAX_UINT128))
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user2.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user2.address, amount)
+
+            vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(amount)
+            const { vestedAmount, claimedAmount } = await airdrop.calculateVestedAmount(vestingHash)
+            expect(vestedAmount).to.be.eq(amount)
+            expect(claimedAmount).to.be.eq(amount)
+            expect(
+                await token.allowance(airdrop.address, executor.address)
+            ).to.be.eq(0)
+        })
+
+        it('can claim available tokens multiple times to different accounts', async () => {
+            const { airdrop, token, executor } = await setupTests()
+
+            const amount = ethers.utils.parseUnits("1000", 18)
+            
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            let vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(0)
+
+            await setNextBlockTime(currentTime)
+
+            const claimAmount = amount.div(4)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, claimAmount)
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            let amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount.div(2))
+            expect(amounts.claimedAmount).to.be.eq(claimAmount)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, claimAmount)
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.gt(amount.div(2))
+            expect(amounts.claimedAmount).to.be.eq(claimAmount.mul(2))
+
+            await setNextBlockTime(vestingEnd)
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user2.address, claimAmount)
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user2.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user2.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount)
+            expect(amounts.claimedAmount).to.be.eq(claimAmount.mul(3))
+
+            await expect(
+                airdrop.claimVestedTokens(vestingHash, user1.address, claimAmount)
+            )
+                .to.emit(airdrop, "ClaimedVesting").withArgs(vestingHash, user1.address, user1.address)
+                .and.to.emit(token, "Transfer").withArgs(airdrop.address, user1.address, claimAmount)
+            amounts = await airdrop.calculateVestedAmount(vestingHash)
+            expect(amounts.vestedAmount).to.be.eq(amount)
+            expect(amounts.claimedAmount).to.be.eq(amount)
+
+            vesting = await airdrop.vestings(vestingHash)
+            expect(vesting.amount).to.be.eq(amount)
+            expect(vesting.amountClaimed).to.be.eq(amount)
+        })
     })
 })
