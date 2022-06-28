@@ -34,9 +34,16 @@ Where the following needs to be considered:
 - `duration_elapsed` is greater or equal to `duration_total` all tokens have been vested and the formula should not be used.
 - The time unit used for `duration_elapsed` and `duration_total` MUST be the same (e.g. seconds)
 
+
+### Claiming
+
+The contract has a `claimVestedTokens` which allows to claim tokens that have already been vested. When calling the method the Vesting contract will call the `transfer` method on the token contract to sent the tokens to the specified beneficiary. If it is not possible to transfer the token the claiming will revert.
+
 ### Management
 
 Each vesting pool has a manager. The manager of a Vesting pool can create new vestings and can pause, unpause or cancel managed vestings.
+
+When adding a new vesting it is required that enough tokens for the vesting are available for the vesting contract. Each time a new vesting is created the vesting contract will keep track of this, so that all vesting on the vesting contract are backed by the required amount of tokens. This ensured that there are enough tokens availble for all vesting when they can be claimed.
 
 #### Pausing
 
