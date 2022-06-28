@@ -359,6 +359,27 @@ describe("Airdrop - Claiming", async () => {
             ).to.be.revertedWith("Could not deduct tokens from pool")
         })
 
+        it('should revert if token balance does not update', async () => {
+            const { mock, airdrop, token, executor } = await setupMockedTests()
+
+            await executor.enableModule(airdrop.address)
+            const amount = ethers.utils.parseUnits("1000", 18)
+
+            await mock.givenMethodReturnUint(token.interface.getSighash("balanceOf"), amount)
+
+            const elements = await setupAirdrop(airdrop, token, amount, vestingStart, executor)
+            const { vestingHash } = await redeemAirdrop(airdrop, elements, user1.address, amount)
+
+            await mock.givenMethodReturnBool(token.interface.getSighash("approve"), true)
+            await mock.givenCalldataReturnBool(token.interface.encodeFunctionData("approve", [executor.address, 0]), false)
+            await mock.givenMethodReturnBool(token.interface.getSighash("transferFrom"), true)
+            await setNextBlockTime(vestingEnd)
+            await expect(
+                airdrop.claimVestedTokensViaModule(vestingHash, user1.address, MAX_UINT128)
+            ).to.be.revertedWith("Could not set tokens allowance to 0")
+        })
+
+
         it('can claim available tokens while vesting is running', async () => {
             const { airdrop, token, executor } = await setupTests()
 
