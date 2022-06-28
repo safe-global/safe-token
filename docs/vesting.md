@@ -36,7 +36,7 @@ Where the following needs to be considered:
 
 ### Management
 
-Each vesting pool has a manager. Management can be transferred or revoked. The manager of a Vesting pool can create new vestings and can pause, unpause or cancel managed vestings.
+Each vesting pool has a manager. The manager of a Vesting pool can create new vestings and can pause, unpause or cancel managed vestings.
 
 #### Pausing
 
