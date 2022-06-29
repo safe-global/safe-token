@@ -34,15 +34,16 @@ task("check_vanity_token", "Calculates an address for a salt")
         console.log(targetAddress)
     });
 
-task("generate_deployment_tx", "Prints deployment transaction details")
+task("generate_token_deployment_tx", "Prints deployment transaction details")
     .addParam("salt", "Salt", "", types.string)
+    .addParam("manager", "Manager", nameToAddress("Safe Foundation"), types.string, true)
     .setAction(async (taskArgs, hre) => {
         const deployerAddress = await getDeployerAddress(hre);
         console.log(deployerAddress)
         if (!deployerAddress) throw Error("No deployer specified")
         const artifact = await hre.artifacts.readArtifact("SafeToken")
         const contractFactory = new ethers.ContractFactory(artifact.abi, artifact.bytecode)
-        const deploymentCode = contractFactory.getDeployTransaction(nameToAddress("Safe Foundation")).data
+        const deploymentCode = contractFactory.getDeployTransaction(taskArgs.manager).data
         if (!deploymentCode) throw Error("Could not generate deployment code")
         const encodedSalt = ethers.utils.defaultAbiCoder.encode(["bytes32"], [taskArgs.salt])
         const targetAddress = ethers.utils.getCreate2Address(

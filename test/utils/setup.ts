@@ -7,7 +7,7 @@ export const getAirdropContract = async () => {
 }
 
 export const getAirdrop = async () => {
-    const Contract = await getVestingPoolContract();
+    const Contract = await getAirdropContract();
     const Deployment = await deployments.get("Airdrop");
     return Contract.attach(Deployment.address);
 }

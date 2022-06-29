@@ -39,7 +39,8 @@ if (["mainnet", "rinkeby", "kovan", "goerli"].includes(argv.network) && INFURA_K
 }
 
 import "./src/tasks/local_verify"
-import "./src/tasks/vanity_address"
+import "./src/tasks/safe_token"
+import "./src/tasks/vesting_pool"
 import "./src/tasks/deploy_contracts"
 import "./src/tasks/show_codesize"
 import { BigNumber } from "@ethersproject/bignumber";
