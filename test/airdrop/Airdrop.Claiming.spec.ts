@@ -376,7 +376,7 @@ describe("Airdrop - Claiming", async () => {
             await setNextBlockTime(vestingEnd)
             await expect(
                 airdrop.claimVestedTokensViaModule(vestingHash, user1.address, MAX_UINT128)
-            ).to.be.revertedWith("Could not set tokens allowance to 0")
+            ).to.be.revertedWith("Could not set token allowance to 0")
         })
 
 
