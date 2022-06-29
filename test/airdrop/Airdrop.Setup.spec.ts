@@ -5,13 +5,14 @@ import { deployTestToken, getAirdropContract } from "../utils/setup";
 
 describe("Airdrop - Setup", async () => {
 
+    const redeemDeadline = (new Date()).getTime() + 60 * 60 * 1000
     const [user1, user2] = waffle.provider.getWallets();
 
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
         const airdropContract = await getAirdropContract()
         const token = await deployTestToken()
-        const airdrop = await airdropContract.deploy(token.address, user1.address)
+        const airdrop = await airdropContract.deploy(token.address, user1.address, redeemDeadline)
         return {
             token,
             airdrop
