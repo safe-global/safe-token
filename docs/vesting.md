@@ -6,6 +6,11 @@ The Vesting Pool is used to distribute tokens over time to different accounts. T
 
 ## Specification
 
+### Glossary
+
+- Token - An [ERC20](https://eips.ethereum.org/EIPS/eip-20) compatible token that will be vested
+- Manager - The account that has special permissions related to vesting management
+
 ### Vesting
 
 Each vesting is specified by the account which owns the vesting, the curve to calculate the vested tokens, a flag to indicate if the vesting is controlled by the manager, the duration of the vesting, the start date of the vesting and the amount that should be vested in total.
@@ -43,7 +48,7 @@ The contract has a `claimVestedTokens` which allows to claim tokens that have al
 
 Each vesting pool has a manager. The manager of a Vesting pool can create new vestings and can pause, unpause or cancel managed vestings.
 
-When adding a new vesting it is required that enough tokens for the vesting are available for the vesting contract. Each time a new vesting is created the vesting contract will keep track of this, so that all vesting on the vesting contract are backed by the required amount of tokens. This ensured that there are enough tokens availble for all vesting when they can be claimed.
+When adding a new vesting it is required that enough tokens for the vesting are available for the vesting contract. Each time a new vesting is created the vesting contract will keep track of this, so that all vesting on the vesting contract are backed by the required amount of tokens. This ensured that there are enough tokens available for all vesting when they can be claimed.
 
 #### Pausing
 

@@ -80,7 +80,7 @@ contract Airdrop is VestingPool {
         // Trigger transfer of tokens from this pool to the beneficiary via the pool manager as a module transaction
         require(ModuleManager(poolManager).execTransactionFromModule(token, 0, transferData, 0), "Module transaction failed");
         // Set allowance to 0 to avoid any left over allowance. (Note: this should be impossible for normal ERC20 tokens)
-        require(IERC20(token).approve(poolManager, 0), "Could not set tokens allowance to 0");
+        require(IERC20(token).approve(poolManager, 0), "Could not set token allowance to 0");
         // Check state after the transfer
         uint256 balancePoolAfter = IERC20(token).balanceOf(address(this));
         uint256 balanceBeneficiaryAfter = IERC20(token).balanceOf(beneficiary);

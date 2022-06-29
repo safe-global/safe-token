@@ -6,10 +6,15 @@ The Airdrop contract will be used to distribute tokens to the users and contribu
 
 ## Specification
 
+### Glossary
+
+- Token - An [ERC20](https://eips.ethereum.org/EIPS/eip-20) compatible token that will be vested
+- Target account - The account which is the owner of the vesting that is created by the airdrop
+- Beneficiary - The account that will receive the tokens when performing the claiming
 
 ### Redeeming and Claiming
 
-The Airdrop contract is an extension of the [VestingPool](./vesting.md) that uses a Merkle proof to create the vestings. The process of creating the vestings is called "redeem". Once an vesting has been redeemed with a Merkle proof it is possible to claim the tokens for the created vesting. Only the target account of an airdrop will be able to claim the tokens.
+The Airdrop contract is an extension of the [VestingPool](./vesting.md) that uses a Merkle proof to create the vestings. The process of creating the vestings is called "redeem". Once a vesting has been redeemed with a Merkle proof it is possible to claim the tokens for the created vesting. Only the target account of an airdrop will be able to claim the tokens.
 
 The Airdrop contract has two different flows for claiming:
 
@@ -22,9 +27,9 @@ If the token is freely transferable the easiest method to claim the tokens after
 
 #### Module flow
 
-In cases where a token is not freely transferable, but can be transfered by the owner of the token, it is possible to use the module flow. In this flow it is assumed that the owner of the token implements the [`ModuleManager` interface](../contracts/interfaces/ModuleManager.sol) (e.g. a [Safe](https://www.github.com/safe-global/safe-contracts) is used as the owner). In this case the `claimVestedTokensViaModule` can be called. The method will call `approve` on the token contract, to set an allowance for the registered manager (e.g. the `poolManager` of the `VestingPool`) to transfer the required amount of tokens. As a second step a the `execTransactionFromModule` of the `ModuleManager`  interface is called to trigger a call from the pool manager to the token contract that triggers the `transferFrom` method. With this call the claimed tokens will be transfered from the airdrop contract to the beneficiary.
+In cases where a token is not freely transferable, but can be transferred by the owner of the token, it is possible to use the module flow. In this flow it is assumed that the owner of the token implements the [`ModuleManager` interface](../contracts/interfaces/ModuleManager.sol) (e.g. a [Safe](https://www.github.com/safe-global/safe-contracts) is used as the owner). In this case the `claimVestedTokensViaModule` can be called. The method will call `approve` on the token contract, to set an allowance for the registered manager (e.g. the `poolManager` of the `VestingPool`) to transfer the required amount of tokens. As a second step a the `execTransactionFromModule` of the `ModuleManager`  interface is called to trigger a call from the pool manager to the token contract that triggers the `transferFrom` method. With this call the claimed tokens will be transferred from the airdrop contract to the beneficiary.
 
-Note: The Airdrop contract will check that the balances of itself and the beneficiary have been adjusted as expected to ensure that the pool manager actually transfered the tokens.
+Note: The Airdrop contract will check that the balances of itself and the beneficiary have been adjusted as expected to ensure that the pool manager actually transferred the tokens.
 
 ### Expiry
 
