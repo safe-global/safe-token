@@ -11,9 +11,9 @@ from etherscan.client import EmptyResponse
 ETHERSCAN_API_KEY = ''
 BLOCK_TYPES = ['blocks', 'uncles']
 
-MINER_SAFES = ['0xf20b338752976878754518183873602902360704']  # Use https://dune.com/queries/638270 to get this list.
-OUTPUT_FILENAME_SQL = '../csv/rewards.sql'
-OUTPUT_FILENAME_CSV = '../csv/rewards.csv'
+MINER_SAFES = ['0xf20b338752976878754518183873602902360704','0xae5fb390e5c4fa1962e39e98dbfb0ed8055ed7a9']  # Use https://dune.com/queries/638270 to get this list.
+OUTPUT_FILENAME_SQL = './rewards.sql'
+OUTPUT_FILENAME_CSV = './rewards.csv'
 page_size = 10000  # Etherscan page size
 
 data = {}
@@ -60,11 +60,12 @@ for address in MINER_SAFES:
 # Output for usage in SQL
 with open(OUTPUT_FILENAME_SQL, 'w') as outfile:
     
+    values = []
     for address in data.keys():
-        values = []
         for day in data[address].keys():
             values.append("\t('\\{}'::bytea, '{}'::date,{})".format(address[1:], day, data[address][day]))
     outfile.write('SELECT * FROM (VALUES \n')
+    import pdb;pdb.set_trace()
     outfile.write(",\n".join(values))
     outfile.write('\n) AS t (address,day,balance_change)')
 
@@ -73,4 +74,4 @@ with open(OUTPUT_FILENAME_CSV, 'w') as outfile:
     writer = csv.writer(outfile, delimiter=',')
     for address in data.keys():
         for day in data[address].keys():
-            writer.writerow(['\\{}'.format(address[1:]), day, data[address][day]])
+            writer.writerow([address, day, data[address][day]])
