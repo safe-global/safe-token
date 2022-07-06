@@ -81,7 +81,8 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
             curveType: string | undefined,
             startDate: string | undefined,
             duration: string | undefined,
-            managed: boolean | undefined
+            managed: boolean | undefined,
+            expectedSafe: boolean | undefined
         }[] = await readCsv(taskArgs.csv)
         const txs: MetaTransaction[] = []
         const vestings: { vestingHash: string, vesting: Vesting }[] = []
@@ -108,6 +109,8 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 const data = factory.interface.encodeFunctionData("createProxyWithNonce", [singleton.address, setupData, input.nonce])
                 txs.push({ to: factory.address, data, operation: 0, value: "0" })
                 vestingTarget = await calculateProxyAddress(factory, singleton.address, setupData, input.nonce)
+                if (input.expectedSafe !== undefined && input.expectedSafe !== vestingTarget) 
+                    throw Error(`Unexpected vesting target Safe! Expected ${input.expectedSafe} got ${vestingTarget}`)
             }
             /*
             address account,
