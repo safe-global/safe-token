@@ -1,7 +1,7 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
-import { BigNumber, ethers } from "ethers";
+import { BigNumber, Contract, ethers } from "ethers";
 import { AddressZero } from "@ethersproject/constants";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { nameToAddress } from "../utils/tokenConfig";
@@ -27,12 +27,26 @@ const prepareSalt = (saltInput: string): string => {
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(saltInput))
 }
 
+const printVestingDetails = async(vestingPool: Contract, vestingId: string, tokenInfo: { decimals: BigNumber | number, symbol: string}) => {
+    const vesting = await vestingPool.vestings(vestingId)
+    console.log("Vesting Details")
+    console.log("Account:", vesting.account)
+    console.log("Amount:", ethers.utils.formatUnits(vesting.amount, tokenInfo.decimals), tokenInfo.symbol)
+    const startDate = new Date(vesting.startDate.toNumber() * 1000)
+    const endDate = new Date(startDate)
+    endDate.setDate(startDate.getDate() + 7 * vesting.durationWeeks)
+    console.log("Start Date:", startDate.toUTCString())
+    console.log("End Date:", endDate.toUTCString())
+    console.log("Duration:", vesting.durationWeeks, "weeks")
+    console.log("Managed:", vesting.managed)
+    console.log("Cancelled:", vesting.cancelled)
+}
+
 task("show_vesting", "Prints vesting details")
     .addParam("pool", "Vesting pool which should be queried", "", types.string)
     .addParam("id", "Id of the vesting for which to query information", "", types.string)
     .setAction(async (taskArgs, hre) => {
         const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
-        const vesting = await vestingPool.vestings(taskArgs.id)
         let decimals = 0
         let symbol = ""
         try {
@@ -43,17 +57,33 @@ task("show_vesting", "Prints vesting details")
         } catch {
             console.warn("Could not load token info!")
         }
-        console.log("Vesting Details")
-        console.log("Account:", vesting.account)
-        console.log("Amount:", ethers.utils.formatUnits(vesting.amount, decimals), symbol)
-        const startDate = new Date(vesting.startDate.toNumber() * 1000)
-        const endDate = new Date(startDate)
-        endDate.setDate(startDate.getDate() + 7 * vesting.durationWeeks)
-        console.log("Start Date:", startDate.toUTCString())
-        console.log("End Date:", endDate.toUTCString())
-        console.log("Duration:", vesting.durationWeeks, "weeks")
-        console.log("Managed:", vesting.managed)
-        console.log("Cancelled:", vesting.cancelled)
+        await printVestingDetails(vestingPool, taskArgs.id, { decimals, symbol })
+    });
+
+task("show_vestings", "Prints vesting details")
+    .addPositionalParam("csv", "CSV file with the information of the Safes that should be created", undefined, types.inputFile)
+    .addParam("pool", "Vesting pool which should be queried", "", types.string)
+    .setAction(async (taskArgs, hre) => {
+        const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
+        let decimals = 0
+        let symbol = ""
+        try {
+            const tokenAddress = await vestingPool.token()
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
+            decimals = await token.decimals()
+            symbol = await token.symbol()
+        } catch {
+            console.warn("Could not load token info!")
+        }
+        const inputs: { 
+            vestingId: string | undefined,
+        }[] = await readCsv(taskArgs.csv)
+        for (const input of inputs) {
+            if (input.vestingId) {
+                await printVestingDetails(vestingPool, input.vestingId, { decimals, symbol })
+            }
+            console.log("")
+        }
     });
 
 task("generate_vesting_deployment_tx", "Prints deployment transaction details")
