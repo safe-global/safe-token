@@ -27,6 +27,35 @@ const prepareSalt = (saltInput: string): string => {
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(saltInput))
 }
 
+task("show_vesting", "Prints vesting details")
+    .addParam("pool", "Vesting pool which should be queried", "", types.string)
+    .addParam("id", "Id of the vesting for which to query information", "", types.string)
+    .setAction(async (taskArgs, hre) => {
+        const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
+        const vesting = await vestingPool.vestings(taskArgs.id)
+        let decimals = 0
+        let symbol = ""
+        try {
+            const tokenAddress = await vestingPool.token()
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
+            decimals = await token.decimals()
+            symbol = await token.symbol()
+        } catch {
+            console.warn("Could not load token info!")
+        }
+        console.log("Vesting Details")
+        console.log("Account:", vesting.account)
+        console.log("Amount:", ethers.utils.formatUnits(vesting.amount, decimals), symbol)
+        const startDate = new Date(vesting.startDate.toNumber() * 1000)
+        const endDate = new Date(startDate)
+        endDate.setDate(startDate.getDate() + 7 * vesting.durationWeeks)
+        console.log("Start Date:", startDate.toUTCString())
+        console.log("End Date:", endDate.toUTCString())
+        console.log("Duration:", vesting.durationWeeks, "weeks")
+        console.log("Managed:", vesting.managed)
+        console.log("Cancelled:", vesting.cancelled)
+    });
+
 task("generate_vesting_deployment_tx", "Prints deployment transaction details")
     .addParam("salt", "Salt", "", types.string)
     .addParam("manager", "Manager", nameToAddress("Safe Foundation"), types.string, true)
@@ -70,6 +99,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
     .addParam("defaultStartDate", "Start date as unix timestamp that should be used if not defined in CSV", "", types.string, true)
     .addParam("defaultDuration", "Duration in weeks that should be used if not defined in CSV", "", types.string, true)
     .addParam("tokenAddress", "Token address that should be used for transfers (by default it tries to query this from the vesting pool)", "", types.string, true)
+    .addParam("tokenAmount", "Token amount that should be be transferred to vesting pool (by default it the required amount for the vestings to be created is used)", "", types.string, true)
     .addParam("export", "If specified instead of executing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
     .setAction(async (taskArgs, hre) => {
         if (!taskArgs.pool) throw Error("No vesting pool specified")
@@ -91,7 +121,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
         if (taskArgs.transferTokens) {
             const tokenAddress = taskArgs.tokenAddress || await vestingPool.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
-            const requiredTokens = calculateRequiredTokens(inputs)
+            const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
             const transferData = token.interface.encodeFunctionData("transfer", [vestingPool.address, requiredTokens])
             txs.push({ to: token.address, data: transferData, operation: 0, value: "0" })
         }
