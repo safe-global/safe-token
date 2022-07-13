@@ -5,6 +5,7 @@ import { MetaTransaction } from '@gnosis.pm/safe-contracts'
 import { Contract } from "@ethersproject/contracts";
 import { getCompatibilityFallbackHandlerDeployment, getMultiSendDeployment, getProxyFactoryDeployment, getSafeSingletonDeployment, getSafeL2SingletonDeployment, SingletonDeployment, getMultiSendCallOnlyDeployment } from "@gnosis.pm/safe-deployments";
 import { HardhatRuntimeEnvironment as HRE } from "hardhat/types";
+import { BigNumber, ethers } from 'ethers';
 
 export const contractFactory = (hre: HRE, contractName: string) => hre.ethers.getContractFactory(contractName);
 
@@ -58,3 +59,28 @@ export const readCsv = async<T>(file: string): Promise<T[]> => new Promise((reso
         .on("error", (err) => { reject(err) })
         .on("end", () => { resolve(results)})
 })
+
+export const prepareSalt = (saltInput: string): string => {
+    if (ethers.utils.isHexString(saltInput))
+        return saltInput
+    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(saltInput))
+}
+
+export const getDeployerAddress = async (hre: HRE): Promise<string | undefined> => {
+    const getter = hre.config.deterministicDeployment
+    if (!getter) return "0x4e59b44847b379578588920ca78fbf26c0b4956c"
+    const chainId = await hre.getChainId()
+    if (typeof getter === "function") {
+        console.log(getter(chainId))
+        return getter(chainId)?.factory
+    }
+    return getter.chainId?.factory
+}
+
+export const calculateRequiredTokens = (inputs: { amount: string }[]): BigNumber => {
+    let sum = BigNumber.from(0)
+    for(const input of inputs) {
+        sum = sum.add(BigNumber.from(input.amount))
+    }
+    return sum
+}

@@ -5,7 +5,7 @@ import { BigNumber, Contract, ethers } from "ethers";
 import { AddressZero } from "@ethersproject/constants";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { nameToAddress } from "../utils/tokenConfig";
-import { compatHandler, multiSendCallOnlyLib, proxyFactory, readCsv, safeSingleton, writeTxBuilderJson } from "./task_utils";
+import { calculateRequiredTokens, compatHandler, multiSendCallOnlyLib, prepareSalt, proxyFactory, readCsv, safeSingleton, writeTxBuilderJson } from "./task_utils";
 import { calculateProxyAddress, encodeMultiSend, MetaTransaction } from "@gnosis.pm/safe-contracts";
 import { calculateVestingHash } from "../utils/hash";
 import { Vesting } from "../utils/types";
@@ -19,12 +19,6 @@ const getDeployerAddress = async (hre: HardhatRuntimeEnvironment): Promise<strin
         return getter(chainId)?.factory
     }
     return getter.chainId?.factory
-}
-
-const prepareSalt = (saltInput: string): string => {
-    if (ethers.utils.isHexString(saltInput))
-        return saltInput
-    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(saltInput))
 }
 
 const printVestingDetails = async(vestingPool: Contract, vestingId: string, tokenInfo: { decimals: BigNumber | number, symbol: string}) => {
@@ -109,28 +103,20 @@ task("generate_vesting_deployment_tx", "Prints deployment transaction details")
         console.log("Transaction data", encodedSalt + deploymentCode.toString().slice(2))
     });
 
-const calculateRequiredTokens = (inputs: { amount: string }[]): BigNumber => {
-    let sum = BigNumber.from(0)
-    for(const input of inputs) {
-        sum = sum.add(BigNumber.from(input.amount))
-    }
-    return sum
-}
-
 task("build_add_vestings_tx", "Creates a multisend transaction to assign multiple vestings based on a CSV")
     .addFlag("transferTokens", "Indicate whether the multisend should include the transfer of the required tokens")
     .addFlag("createSafes", "Indicate whether a new Safe should be created for each vesting")
     .addFlag("showVestings", "Indicate whether to display the information of the vestings that will be created")
-    .addPositionalParam("csv", "CSV file with the information of the Safes that should be created", undefined, types.inputFile)
+    .addPositionalParam("csv", "CSV file with the information of the vestings that should be created", undefined, types.inputFile)
     .addParam("defaultOwner", "The default owner of the new vesting (or the Safe for the vesting) if no owner is specified", nameToAddress("Safe Foundation"), types.string, true)
     .addParam("pool", "Address of the vesting pool", "", types.string)
     .addParam("defaultManaged", "Flag if the vesting should be managed by default if not defined in CSV", false, types.boolean, true)
     .addParam("defaultCurve", "Curve that should be used if not defined in CSV", "0", types.string, true)
     .addParam("defaultStartDate", "Start date as unix timestamp that should be used if not defined in CSV", "", types.string, true)
     .addParam("defaultDuration", "Duration in weeks that should be used if not defined in CSV", "", types.string, true)
-    .addParam("tokenAddress", "Token address that should be used for transfers (by default it tries to query this from the vesting pool)", "", types.string, true)
+    .addParam("token", "Token address that should be used for transfers (by default it tries to query this from the vesting pool)", "", types.string, true)
     .addParam("tokenAmount", "Token amount that should be be transferred to vesting pool (by default it the required amount for the vestings to be created is used)", "", types.string, true)
-    .addParam("export", "If specified instead of executing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
+    .addParam("export", "If specified instead of printing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
     .setAction(async (taskArgs, hre) => {
         if (!taskArgs.pool) throw Error("No vesting pool specified")
 
@@ -196,7 +182,8 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 startDate: input.startDate || taskArgs.defaultStartDate,
                 amount: input.amount
             }
-            vestings.push({ vestingHash: calculateVestingHash(vestingPool, vesting, 1), vesting})
+            const chainId = (await hre.ethers.provider.getNetwork()).chainId
+            vestings.push({ vestingHash: calculateVestingHash(vestingPool, vesting, chainId), vesting})
             txs.push({ to: vestingPool.address, data: vestingData, operation: 0, value: "0" })
         }
 
