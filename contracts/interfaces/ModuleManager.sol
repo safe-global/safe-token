@@ -2,11 +2,13 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 interface ModuleManager {
-    /// @dev Allows a Module to execute a Safe transaction without any further confirmations.
+    /// @notice Allows a module to execute a Safe transaction.
+    /// @dev The implementation of the interface might require that the module is enabled (e.g. for the Safe contracts via enableModule) and could revert otherwise
     /// @param to Destination address of module transaction.
     /// @param value Ether value of module transaction.
     /// @param data Data payload of module transaction.
     /// @param operation Operation type of module transaction.
+    /// @param success Indicates if the Safe transaction was executed successfully or not
     function execTransactionFromModule(
         address to,
         uint256 value,
