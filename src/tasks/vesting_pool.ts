@@ -118,7 +118,7 @@ const calculateRequiredTokens = (inputs: { amount: string }[]): BigNumber => {
 }
 
 task("build_add_vestings_tx", "Creates a multisend transaction to assign multiple vestings based on a CSV")
-    .addFlag("transferTokens", "Indicate whether a the multisend should include the transfer of the required tokens")
+    .addFlag("transferTokens", "Indicate whether the multisend should include the transfer of the required tokens")
     .addFlag("createSafes", "Indicate whether a new Safe should be created for each vesting")
     .addFlag("showVestings", "Indicate whether to display the information of the vestings that will be created")
     .addPositionalParam("csv", "CSV file with the information of the Safes that should be created", undefined, types.inputFile)
@@ -142,7 +142,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
             startDate: string | undefined,
             duration: string | undefined,
             managed: boolean | undefined,
-            expectedSafe: boolean | undefined
+            expectedSafe: string | undefined
         }[] = await readCsv(taskArgs.csv)
         const txs: MetaTransaction[] = []
         const vestings: { vestingHash: string, vesting: Vesting }[] = []
