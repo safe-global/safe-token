@@ -7,6 +7,9 @@ Safe Token Contracts
 - [Vesting Pool](./docs/vesting.md)
 - [Airdrop](./docs/airdrop.md)
 
+### Audits
+- [Ackee Blockchain Audit of the VestingPool contract](./docs/ackee_audit_vesting_contract.pdf)
+
 Usage
 -----
 ### Install requirements with yarn:

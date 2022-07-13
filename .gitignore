@@ -6,6 +6,8 @@ node_modules/
 deployments/
 env/
 dist/
+input/
+output/
 .env
 bin/
 solc
