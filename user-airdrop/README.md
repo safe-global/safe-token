@@ -1,11 +1,11 @@
-# Safe user airdrop
+# Safe user allocations
 
-This is a collection of scripts and csv files to determine eligibility for the Safe user airdrop.
+This is a collection of scripts and csv files to determine eligibility for the Safe user allocations.
 
 ## fetch_rewards.py
 
 - Fetches block and uncle rewards from Etherscan for a given list of addresses.
-- Ouputs data as CSV and SQL to be put into a query on Dune.
+- Outputs data as CSV and SQL to be put into a query on Dune.
 
 ## fetch_sanctioned.py
 
