@@ -1,15 +1,18 @@
 import csv
 import sys
 
-from web3 import Web3
 from multiprocessing import Pool
+from dotenv import dotenv_values
+from web3 import Web3
 
 NUM_WORKERS = 10
 
-INPUT_FILENAME = './safes.sql'
+INPUT_FILENAME = './safes.csv'
 OUTPUT_FILENAME = './sanctioned_safes.csv'
 
-w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/'))
+CONFIG = dotenv_values('.env')
+
+w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/' + CONFIG['INFURA_KEY']))
 
 CHAINALYSIS_SANCTIONED_ORACLE_ADDRESS = '0x40C57923924B5c5c5455c48D93317139ADDaC8fb'
 CHAINALYSIS_SANCTIONED_ORACLE_ABI = """

@@ -7,8 +7,10 @@ import csv
 from etherscan.accounts import Account
 from etherscan.client import EmptyResponse
 
+from dotenv import dotenv_values
 
-ETHERSCAN_API_KEY = ''
+CONFIG = dotenv_values('.env')
+
 BLOCK_TYPES = ['blocks', 'uncles']
 
 MINER_SAFES = ['0xf20b338752976878754518183873602902360704','0xae5fb390e5c4fa1962e39e98dbfb0ed8055ed7a9']  # Use https://dune.com/queries/638270 to get this list.
@@ -20,7 +22,7 @@ data = {}
 
 # Fetch data
 for address in MINER_SAFES:
-    etherscan_api = Account(address=address, api_key=ETHERSCAN_API_KEY)
+    etherscan_api = Account(address=address, api_key=CONFIG['ETHERSCAN_API_KEY'])
 
     data[address] = {}
 
