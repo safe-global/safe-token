@@ -10,7 +10,7 @@ NUM_WORKERS = 10
 INPUT_FILENAME = './safes.csv'
 OUTPUT_FILENAME = './sanctioned_safes.csv'
 
-CONFIG = dotenv_values('.env')
+CONFIG = dotenv_values('../.env')
 
 w3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/' + CONFIG['INFURA_KEY']))
 

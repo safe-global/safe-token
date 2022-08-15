@@ -18,7 +18,7 @@ This is a collection of scripts and csv files to determine eligibility for the S
 1. Create virtual env: `python -m venv venv`
 2. Activate virtual env `source venv/bin/activate`
 3. Install requirements via `pip install -r requirements.txt`
-4. Copy file with env variables: `cp .env.sample .env`
+4. Copy file with env variables: `cp ../.env.sample ../.env`
 5. Add you API keys to `.env`
 6. Run `python fetch_rewards.py`. Output will be in `rewards.sql` and `rewards.csv`
 7. Run `python get_sanctioned.py`. Output will be in `sanctioned_safes.csv`

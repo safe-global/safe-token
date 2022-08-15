@@ -9,7 +9,7 @@ from etherscan.client import EmptyResponse
 
 from dotenv import dotenv_values
 
-CONFIG = dotenv_values('.env')
+CONFIG = dotenv_values('../.env')
 
 BLOCK_TYPES = ['blocks', 'uncles']
 
