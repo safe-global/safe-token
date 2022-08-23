@@ -2,6 +2,8 @@
 
 This is a collection of scripts and csv files to determine eligibility for the Safe user allocations.
 
+More info on the proposal can be found on the [Safe forum](https://forum.gnosis-safe.io/t/proposal-safe-distribution-for-users/369).
+
 ## fetch_rewards.py
 
 - Fetches block and uncle rewards from Etherscan for a given list of addresses.
