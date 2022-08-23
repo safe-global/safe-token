@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getAirdropContract } from "../utils/setup";
+import { setNextBlockTime } from "../utils/state";
 
 describe("Airdrop - Setup", async () => {
 
