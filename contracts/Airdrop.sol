@@ -14,11 +14,16 @@ contract Airdrop is VestingPool {
     // Time until which the airdrop can be redeemed
     uint64 public immutable redeemDeadline;
 
+    /// @notice Creates the airdrop for the token at address `_token` and `_manager` as the manager. The airdrop can be redeemed until `_redeemDeadline`.
+    /// @param _token The token that should be used for the airdrop
+    /// @param _manager The manager of this airdrop (e.g. the address that can call `initializeRoot`)
+    /// @param _redeemDeadline The deadline until when the airdrop could be redeemed (if inititalized). This needs to be a date in the future.
     constructor(
         address _token,
         address _manager,
         uint64 _redeemDeadline
     ) VestingPool(_token, _manager) {
+        require(_redeemDeadline > block.timestamp, "Redeem deadline should be in the future");
         redeemDeadline = _redeemDeadline;
     }
 

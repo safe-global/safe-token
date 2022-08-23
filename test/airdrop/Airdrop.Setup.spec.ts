@@ -54,4 +54,23 @@ describe("Airdrop - Setup", async () => {
             ).to.be.revertedWith("This method is not available for this contract")
         })
     })
+    
+    describe("constructor", async () => {
+        it('should revert with redeem date in the past', async () => {
+            const airdropContract = await getAirdropContract()
+            const token = await deployTestToken()
+            await expect(
+                airdropContract.deploy(token.address, user1.address, 0)
+            ).to.be.revertedWith("Redeem deadline should be in the future")
+        })
+
+        it('should revert with redeem date at current time', async () => {
+            const airdropContract = await getAirdropContract()
+            const token = await deployTestToken()
+            setNextBlockTime(redeemDeadline)
+            await expect(
+                airdropContract.deploy(token.address, user1.address, redeemDeadline)
+            ).to.be.revertedWith("Redeem deadline should be in the future")
+        })
+    })
 })
