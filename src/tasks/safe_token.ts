@@ -2,19 +2,8 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
 import { BigNumber, ethers } from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { nameToAddress } from "../utils/tokenConfig";
-
-const getDeployerAddress = async (hre: HardhatRuntimeEnvironment): Promise<string | undefined> => {
-    const getter = hre.config.deterministicDeployment
-    if (!getter) return "0x4e59b44847b379578588920ca78fbf26c0b4956c"
-    const chainId = await hre.getChainId()
-    if (typeof getter === "function") {
-        console.log(getter(chainId))
-        return getter(chainId)?.factory
-    }
-    return getter.chainId?.factory
-}
+import { getDeployerAddress } from "./task_utils";
 
 task("check_vanity_token", "Calculates an address for a salt")
     .addParam("salt", "Salt", "", types.string)

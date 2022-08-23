@@ -33,7 +33,15 @@ Note: The Airdrop contract will check that the balances of itself and the benefi
 
 ### Expiry
 
-It is possible to specify that the Airdrop will expire, this means that it will not be possible anymore to redeem any airdrop, therefore no new vestings will be created. Once this happened it is possible to claim all tokens that are not locked in vestings to the manager of the contract.
+It is possible to specify that the airdrop will expire, this means that it will not be possible anymore to redeem any airdrop, therefore no new vestings will be created. Once this happened it is possible to claim all tokens that are not locked in vestings to the manager of the contract.
+
+### Setup
+
+The setup of the Airdrop contract is done in two steps:
+1. Deployment
+2. Intitialization
+
+During the deployment it is necessary to define a manager (inherited from the [VestingPool](./vesting.md)). Once the Airdrop contract is deployed, this manager can initialize the airdrop by setting the Merkle root via `initializeRoot`.
 
 ### Management
 

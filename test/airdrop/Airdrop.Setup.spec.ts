@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { deployTestToken, getAirdropContract } from "../utils/setup";
+import { setNextBlockTime } from "../utils/state";
 
 describe("Airdrop - Setup", async () => {
 
@@ -52,6 +53,25 @@ describe("Airdrop - Setup", async () => {
             await expect(
                 airdrop.addVesting(user2.address, 0, true, 104, currentTime, ethers.utils.parseUnits("200000", 18))
             ).to.be.revertedWith("This method is not available for this contract")
+        })
+    })
+    
+    describe("constructor", async () => {
+        it('should revert with redeem date in the past', async () => {
+            const airdropContract = await getAirdropContract()
+            const token = await deployTestToken()
+            await expect(
+                airdropContract.deploy(token.address, user1.address, 0)
+            ).to.be.revertedWith("Redeem deadline should be in the future")
+        })
+
+        it('should revert with redeem date at current time', async () => {
+            const airdropContract = await getAirdropContract()
+            const token = await deployTestToken()
+            setNextBlockTime(redeemDeadline)
+            await expect(
+                airdropContract.deploy(token.address, user1.address, redeemDeadline)
+            ).to.be.revertedWith("Redeem deadline should be in the future")
         })
     })
 })
