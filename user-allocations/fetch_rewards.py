@@ -13,7 +13,7 @@ CONFIG = dotenv_values('../.env')
 
 BLOCK_TYPES = ['blocks', 'uncles']
 
-MINER_SAFES = ['0xf20b338752976878754518183873602902360704','0xae5fb390e5c4fa1962e39e98dbfb0ed8055ed7a9']  # Use https://dune.com/queries/638270 to get this list.
+MINER_SAFES = ['0xf20b338752976878754518183873602902360704']  # Use https://dune.com/queries/1207707 to get this list.
 OUTPUT_FILENAME_SQL = './rewards.sql'
 OUTPUT_FILENAME_CSV = './rewards.csv'
 page_size = 10000  # Etherscan page size
