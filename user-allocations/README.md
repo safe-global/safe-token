@@ -2,7 +2,7 @@
 
 This is a collection of scripts and csv files to determine eligibility for the Safe user allocations.
 
-More info on the proposal can be found on the [Safe forum](https://forum.gnosis-safe.io/t/proposal-safe-distribution-for-users/369).
+More info on the proposal can be found on the [Safe forum](https://forum.gnosis-safe.io/t/new-proposal-reworked-safe-distribution-for-users/594).
 
 ## fetch_rewards.py
 
