@@ -2,7 +2,7 @@
 
 This is a collection of scripts and csv files to determine eligibility for the Safe user allocations.
 
-More info on the proposal can be found on the [Safe forum](https://forum.gnosis-safe.io/t/proposal-safe-distribution-for-users/369).
+More info on the proposal can be found on the [Safe forum](https://forum.gnosis-safe.io/t/new-proposal-reworked-safe-distribution-for-users/594).
 
 ## fetch_rewards.py
 
@@ -13,7 +13,23 @@ More info on the proposal can be found on the [Safe forum](https://forum.gnosis-
 
 - For a list of addresses (Safes), checks whether they appear in the Chainalysis on-chain list of sanctioned addresses.
 
-## Scripts and queries 
+## calculate_allocations.py
+
+- Based on a number of input CSV files, calculates the number of SAFE allocated to each Safe.
+- Outputs 2 CSV files and stats
+    - safes_tokens.csv: Contains addresses and allocated tokens.
+    - safes_tokens_all.csv: Contains addresses, allocated tokens and all data used to create them.
+
+## Queries and CSV files
+
+- [https://dune.com/queries/1206510](Dune) -> `safes.csv`
+- [https://dune.com/queries/1203871](Dune) -> `txs20181920.csv`
+- [https://dune.com/queries/1207347](Dune) -> `txs2021.csv`
+- [https://dune.com/queries/1207718](Dune) -> `txs2022.csv`
+- [https://dune.com/queries/1203869](Dune) -> `value_eth.csv`
+- [https://dune.com/queries/1207565](Dune) -> `value_stablecoins.csv`
+
+## Scripts
 
 (Use a virtualenv if possible.)
 
@@ -22,5 +38,7 @@ More info on the proposal can be found on the [Safe forum](https://forum.gnosis-
 3. Install requirements via `pip install -r requirements.txt`
 4. Copy file with env variables: `cp ../.env.sample ../.env`
 5. Add you API keys to `../.env`
-6. Run `python fetch_rewards.py`. Output will be in `rewards.sql` and `rewards.csv`
-7. Run `python get_sanctioned.py`. Output will be in `sanctioned_safes.csv`
+6. Download result data from the Dune queries above and put them in the respective CSV files
+7. Run `python fetch_rewards.py`. Output will be in `rewards.sql` and `rewards.csv`
+8. Run `python get_sanctioned.py`. Output will be in `sanctioned_safes.csv`
+9. Run `python calculate_allocations.py`. Output will be in `safes_tokens.csv` and `safes_tokens_all.csv`
