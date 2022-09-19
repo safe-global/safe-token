@@ -135,8 +135,6 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
             console.log(`Generating Full Tree`)
             const fullTree = generateFullTree(merkleLeaves)
             console.log(`Generating Proofs`)
-            extractProof(merkleLeaves[1000], fullTree)
-            return
             for (const vesting of vestings) {
                 writeJson(`output/proofs/${vesting.vesting.account}.json`, {
                     vesting: vesting.vesting,
