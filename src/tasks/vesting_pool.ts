@@ -105,10 +105,11 @@ task("generate_vesting_deployment_tx", "Prints deployment transaction details")
 
 task("build_add_vestings_tx", "Creates a multisend transaction to assign multiple vestings based on a CSV")
     .addFlag("transferTokens", "Indicate whether the multisend should include the transfer of the required tokens")
+    .addFlag("forceFullTokenTransfer", "Indicate whether to force that all required token are transfered (e.g. don't use existing tokens on the pool)")
     .addFlag("createSafes", "Indicate whether a new Safe should be created for each vesting")
     .addFlag("showVestings", "Indicate whether to display the information of the vestings that will be created")
     .addPositionalParam("csv", "CSV file with the information of the vestings that should be created", undefined, types.inputFile)
-    .addParam("defaultOwner", "The default owner of the new vesting (or the Safe for the vesting) if no owner is specified", nameToAddress("Safe Foundation"), types.string, true)
+    .addParam("defaultOwner", "The default owner of the new vesting (or the Safe for the vesting) if no owner is specified", nameToAddress("Safe Foundation Manager"), types.string, true)
     .addParam("pool", "Address of the vesting pool", "", types.string)
     .addParam("defaultManaged", "Flag if the vesting should be managed by default if not defined in CSV", false, types.boolean, true)
     .addParam("defaultCurve", "Curve that should be used if not defined in CSV", "0", types.string, true)
@@ -138,8 +139,16 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
             const tokenAddress = taskArgs.tokenAddress || await vestingPool.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
             const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
-            const transferData = token.interface.encodeFunctionData("transfer", [vestingPool.address, requiredTokens])
-            txs.push({ to: token.address, data: transferData, operation: 0, value: "0" })
+            let tokenToTransfer = requiredTokens;
+            if (!taskArgs.forceFullTokenTransfer) {
+                const availableTokens = await vestingPool.tokensAvailableForVesting()
+                tokenToTransfer = requiredTokens.sub(availableTokens)
+            }
+            if (tokenToTransfer.gt(0)) {
+                console.log("Amount of tokens missing:", hre.ethers.utils.formatEther(tokenToTransfer))
+                const transferData = token.interface.encodeFunctionData("transfer", [vestingPool.address, tokenToTransfer])
+                txs.push({ to: token.address, data: transferData, operation: 0, value: "0" })
+            }
         }
         for (const input of inputs) {
             const vestingOwner = input.owner || taskArgs.defaultOwner 
