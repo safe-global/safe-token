@@ -2,7 +2,7 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
 import { BigNumber, Contract, ethers } from "ethers";
-import { spawn, Worker } from "threads"
+import { spawn, Worker, Thread } from "threads"
 import { nameToAddress } from "../utils/tokenConfig";
 import { calculateRequiredTokens, compatHandler, getDeployerAddress, multiSendCallOnlyLib, prepareSalt, proxyFactory, readCsv, safeSingleton, writeJson, writeTxBuilderJson } from "./task_utils";
 import { calculateProxyAddress, encodeMultiSend, MetaTransaction } from "@gnosis.pm/safe-contracts";
@@ -148,6 +148,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
             const chunks = splitToChunks(vestings, 10000)
 
             await Promise.all(chunks.map(chunk => writeProof(chunk, fullTree)))
+            await Thread.terminate(writeProof)
             console.log(`Generated all Proofs`)
         }
         const initData = airdrop.interface.encodeFunctionData("initializeRoot", [root])
