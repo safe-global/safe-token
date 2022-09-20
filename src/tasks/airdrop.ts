@@ -10,13 +10,13 @@ import { calculateVestingHash } from "../utils/hash";
 import { Vesting } from "../utils/types";
 import { generateFullTree, generateProof, generateRoot } from "../utils/proof";
 
-function splitToChunks<T extends unknown[]>(sourceArray: T, chunkSize: number): T[] {
-    let result = [] as unknown as T;
+function splitToChunks<T>(sourceArray: T[], chunkSize: number): T[][] {
+    let result: T[][] = [];
     for (let i = 0; i < sourceArray.length; i += chunkSize) {
         result[i / chunkSize] = sourceArray.slice(i, i + chunkSize);
     }
 
-    return result as T[];
+    return result;
 }
 
 task("airdrop_info", "Prints vesting details")
@@ -154,8 +154,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
         txs.push({ to: airdrop.address, data: initData, operation: 0, value: "0" })
 
         if (taskArgs.export) {
-            const chainId = (await hre.ethers.provider.getNetwork()).chainId.toString()
-            await writeTxBuilderJson(taskArgs.export, chainId, txs, "Airdrop setup")
+            await writeTxBuilderJson(taskArgs.export, chainId.toString(), txs, "Airdrop setup")
         } else {
             const multiSend = await multiSendCallOnlyLib(hre)
             console.log(`To: ${multiSend.address}`)
