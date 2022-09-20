@@ -2,13 +2,22 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
 import { BigNumber, Contract, ethers } from "ethers";
-import { AddressZero } from "@ethersproject/constants";
+import { spawn, Worker } from "threads"
 import { nameToAddress } from "../utils/tokenConfig";
 import { calculateRequiredTokens, compatHandler, getDeployerAddress, multiSendCallOnlyLib, prepareSalt, proxyFactory, readCsv, safeSingleton, writeJson, writeTxBuilderJson } from "./task_utils";
 import { calculateProxyAddress, encodeMultiSend, MetaTransaction } from "@gnosis.pm/safe-contracts";
 import { calculateVestingHash } from "../utils/hash";
 import { Vesting } from "../utils/types";
-import { extractProof, generateFullTree, generateProof, generateRoot } from "../utils/proof";
+import { generateFullTree, generateProof, generateRoot } from "../utils/proof";
+
+function splitToChunks<T extends unknown[]>(sourceArray: T, chunkSize: number): T[] {
+    let result = [] as unknown as T;
+    for (let i = 0; i < sourceArray.length; i += chunkSize) {
+        result[i / chunkSize] = sourceArray.slice(i, i + chunkSize);
+    }
+
+    return result as T[];
+}
 
 task("airdrop_info", "Prints vesting details")
     .addPositionalParam("airdrop", "Airdrop which should be queried", "", types.string)
@@ -135,12 +144,10 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
             console.log(`Generating Full Tree`)
             const fullTree = generateFullTree(merkleLeaves)
             console.log(`Generating Proofs`)
-            for (const vesting of vestings) {
-                writeJson(`output/proofs/${vesting.vesting.account}.json`, {
-                    vesting: vesting.vesting,
-                    proof: extractProof(vesting.vestingHash, fullTree)
-                })
-            }
+            const writeProof = await spawn(new Worker("./writeProofWorker"))
+            const chunks = splitToChunks(vestings, 10000)
+
+            await Promise.all(chunks.map(chunk => writeProof(chunk, fullTree)))
             console.log(`Generated all Proofs`)
         }
         const initData = airdrop.interface.encodeFunctionData("initializeRoot", [root])

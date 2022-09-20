@@ -35,7 +35,7 @@ export const compatHandler = async (hre: HRE, address?: string) =>
     contractInstance(hre, getCompatibilityFallbackHandlerDeployment(), address)
 
 
-export const writeJson = async(file: string, content: any) => {
+export const writeJson = async (file: string, content: any) => {
     await fs.writeFile(file, JSON.stringify(content, null, 2))
 }
 
