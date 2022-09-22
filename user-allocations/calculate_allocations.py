@@ -9,14 +9,19 @@ MIN_TOKENS = 100
 
 # Load list of Safes created
 safes = pd.read_csv('safes.csv', index_col=0)
+safes.index = safes.index.str.lower()
 
 # Load transaction information
 txs_20181920 = pd.read_csv('txs_20181920.csv', index_col=0)
+txs_20181920.index = txs_20181920.index.str.lower()
 txs_2021 = pd.read_csv('txs_2021.csv', index_col=0)
+txs_2021.index = txs_2021.index.str.lower()
 txs_2022 = pd.read_csv('txs_2022.csv', index_col=0)
+txs_2022.index = txs_2022.index.str.lower()
 
 # Load reported Safes
 reports = pd.read_csv('valid_reports.csv', index_col=0)
+reports.index = reports.index.str.lower()
 
 # Join txs into Safes
 safes = safes.join(pd.concat([txs_20181920, txs_2021, txs_2022]), how='left')
@@ -80,8 +85,8 @@ total_tokens_to_allocate = TOTAL_TOKENS - rewarded_safes.sum()['tokens']
 multiplier =  total_tokens_to_allocate / safes.sum()['tokens']
 safes['tokens'] = safes['tokens'] * multiplier
 
-# Add rewarded Safes to Safes allocations  
-safes = pd.concat([safes, rewarded_safes], axis=0)
+# Add rewarded Safes to Safes allocations. Sum in case the rewarded Safe has been part of the original list already.
+safes = pd.concat([safes,rewarded_safes]).groupby(['safe_address']).sum()
 
 # Add atoms
 safes['tokens_atoms'] = safes['tokens'] * 1e18
