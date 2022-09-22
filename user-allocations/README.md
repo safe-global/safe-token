@@ -28,6 +28,7 @@ More info on the proposal can be found on the [Safe forum](https://forum.gnosis-
 - [https://dune.com/queries/1207718](Dune) -> `txs2022.csv`
 - [https://dune.com/queries/1203869](Dune) -> `value_eth.csv`
 - [https://dune.com/queries/1207565](Dune) -> `value_stablecoins.csv`
+- Get [valid reports](https://github.com/safe-global/safe-user-allocation-reports/blob/main/review/valid_reports.csv) -> `valid_reports.csv`
 
 ## Scripts
 
