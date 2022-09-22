@@ -15,6 +15,9 @@ txs_20181920 = pd.read_csv('txs_20181920.csv', index_col=0)
 txs_2021 = pd.read_csv('txs_2021.csv', index_col=0)
 txs_2022 = pd.read_csv('txs_2022.csv', index_col=0)
 
+# Load reported Safes
+reports = pd.read_csv('valid_reports.csv', index_col=0)
+
 # Join txs into Safes
 safes = safes.join(pd.concat([txs_20181920, txs_2021, txs_2022]), how='left')
 safes = safes.fillna(0)
@@ -48,6 +51,41 @@ tokens_remaining = TOTAL_TOKENS - (len(safes) * MIN_TOKENS)
 # Adjust final token numbers.
 safes['tokens'] = (tokens_remaining / TOTAL_TOKENS * safes['tokens']) + MIN_TOKENS
 
+# Filter out reported Safes
+rewarded_safes_dict = {}
+reported_safes = []
+reports.reset_index()
+for safe_address, row in reports.iterrows():
+    current_rewards_address = row['rewards_safe_address']
+    
+    if current_rewards_address not in rewarded_safes_dict:
+        rewarded_safes_dict[current_rewards_address] = 0
+
+    # Sum up rewards
+    rewarded_safes_dict[current_rewards_address] += safes.loc[safe_address]['tokens']
+    
+    # Collect reported Safes
+    reported_safes.append(safe_address)
+
+# Actually remove reported Safes
+safes = safes.drop(reported_safes)
+
+# Calculate rewards (25% of saved SAFE)
+rewarded_safes = pd.DataFrame([(k, v) for k, v in rewarded_safes_dict.items()], columns=['safe_address', 'tokens'])
+rewarded_safes = rewarded_safes.set_index('safe_address')
+rewarded_safes['tokens'] = rewarded_safes['tokens'] / 4
+
+# Reallocate now free SAFE
+total_tokens_to_allocate = TOTAL_TOKENS - rewarded_safes.sum()['tokens']
+multiplier =  total_tokens_to_allocate / safes.sum()['tokens']
+safes['tokens'] = safes['tokens'] * multiplier
+
+# Add rewarded Safes to Safes allocations  
+safes = pd.concat([safes, rewarded_safes], axis=0)
+
+# Add atoms
+safes['tokens_atoms'] = safes['tokens'] * 1e18
+
 print('Tokens distributed: {}'.format(safes.sum()['tokens']))
 
 print('mean: {}'.format(safes.mean()['tokens']))
@@ -64,7 +102,9 @@ for i, xi in enumerate(tokens[:-1], 1):
     total += np.sum(np.abs(xi - tokens[i:]))
 print('gini: {}'.format(total / (len(tokens)**2 * np.mean(tokens))))
 
+# print(pd.options.display.precision)
+
 # Output
 safes.to_csv('safes_tokens_all.csv', sep=',')
 safes[['tokens']].to_csv('safes_tokens.csv', sep=',')
-
+safes[['tokens_atoms']].to_csv('safes_tokens_atoms.csv', sep=',', float_format='%.0f')
