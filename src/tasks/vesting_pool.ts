@@ -1,5 +1,6 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
+import fsSync from 'fs'
 import { task, types } from "hardhat/config";
 import { BigNumber, Contract, ethers } from "ethers";
 import { AddressZero } from "@ethersproject/constants";
@@ -21,19 +22,22 @@ const getDeployerAddress = async (hre: HardhatRuntimeEnvironment): Promise<strin
     return getter.chainId?.factory
 }
 
-const printVestingDetails = async(vestingPool: Contract, vestingId: string, tokenInfo: { decimals: BigNumber | number, symbol: string}) => {
+const loadVestingDetails = async (vestingPool: Contract, vestingId: string, tokenInfo: { decimals: BigNumber | number, symbol: string }, quiet?: boolean): Promise<Vesting> => {
     const vesting = await vestingPool.vestings(vestingId)
-    console.log("Vesting Details")
-    console.log("Account:", vesting.account)
-    console.log("Amount:", ethers.utils.formatUnits(vesting.amount, tokenInfo.decimals), tokenInfo.symbol)
-    const startDate = new Date(vesting.startDate.toNumber() * 1000)
-    const endDate = new Date(startDate)
-    endDate.setDate(startDate.getDate() + 7 * vesting.durationWeeks)
-    console.log("Start Date:", startDate.toUTCString())
-    console.log("End Date:", endDate.toUTCString())
-    console.log("Duration:", vesting.durationWeeks, "weeks")
-    console.log("Managed:", vesting.managed)
-    console.log("Cancelled:", vesting.cancelled)
+    if (!quiet) {
+        console.log("Vesting Details")
+        console.log("Account:", vesting.account)
+        console.log("Amount:", ethers.utils.formatUnits(vesting.amount, tokenInfo.decimals), tokenInfo.symbol)
+        const startDate = new Date(vesting.startDate * 1000)
+        const endDate = new Date(startDate)
+        endDate.setDate(startDate.getDate() + 7 * vesting.durationWeeks)
+        console.log("Start Date:", startDate.toUTCString())
+        console.log("End Date:", endDate.toUTCString())
+        console.log("Duration:", vesting.durationWeeks, "weeks")
+        console.log("Managed:", vesting.managed)
+        console.log("Cancelled:", vesting.cancelled)
+    }
+    return vesting
 }
 
 task("show_vesting", "Prints vesting details")
@@ -45,13 +49,13 @@ task("show_vesting", "Prints vesting details")
         let symbol = ""
         try {
             const tokenAddress = await vestingPool.token()
-            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
             decimals = await token.decimals()
             symbol = await token.symbol()
         } catch {
             console.warn("Could not load token info!")
         }
-        await printVestingDetails(vestingPool, taskArgs.id, { decimals, symbol })
+        return await loadVestingDetails(vestingPool, taskArgs.id, { decimals, symbol })
     });
 
 task("show_vestings", "Prints vesting details")
@@ -63,20 +67,56 @@ task("show_vestings", "Prints vesting details")
         let symbol = ""
         try {
             const tokenAddress = await vestingPool.token()
-            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
             decimals = await token.decimals()
             symbol = await token.symbol()
         } catch {
             console.warn("Could not load token info!")
         }
-        const inputs: { 
+        const inputs: {
             vestingId: string | undefined,
         }[] = await readCsv(taskArgs.csv)
         for (const input of inputs) {
             if (input.vestingId) {
-                await printVestingDetails(vestingPool, input.vestingId, { decimals, symbol })
+                await loadVestingDetails(vestingPool, input.vestingId, { decimals, symbol })
             }
             console.log("")
+        }
+    });
+
+task("list_vestings", "Prints all vesting details")
+    .addParam("pool", "Vesting pool which should be queried", nameToAddress("Investor Vestings"), types.string, true)
+    .addParam("export", "If specified instead of printing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
+    .setAction(async (taskArgs, hre) => {
+        const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
+        const addedVestingEvents = await vestingPool.queryFilter(vestingPool.filters.AddedVesting(), "earliest", "latest")
+        console.log(addedVestingEvents.length, "Vestings have been created")
+        let decimals = 0
+        let symbol = ""
+        try {
+            const tokenAddress = await vestingPool.token()
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
+            decimals = await token.decimals()
+            symbol = await token.symbol()
+        } catch {
+            console.warn("Could not load token info!")
+        }
+        var output: fsSync.WriteStream|undefined = undefined
+        if (taskArgs.export) {
+            output = fsSync.createWriteStream(taskArgs.export)
+            output.write("vestingId,owner,amount,startDate,duration\n")
+        }  
+        for (const event of addedVestingEvents) {
+            const vestingId = event.args?.id
+            if (!vestingId) throw Error("Vesting ID missing in event")
+            const vesting = await loadVestingDetails(vestingPool, vestingId, { decimals, symbol })
+            if (output) {
+                const startDate = new Date(vesting.startDate * 1000)
+                output.write(`${vestingId},${vesting.account},${vesting.amount},${startDate.toISOString()},${vesting.durationWeeks}\n`)
+            }
+        }
+        if (output) {
+            output.end()
         }
     });
 
@@ -121,7 +161,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
     .setAction(async (taskArgs, hre) => {
         if (!taskArgs.pool) throw Error("No vesting pool specified")
 
-        const inputs: { 
+        const inputs: {
             owner: string | undefined,
             amount: string,
             nonce: string,
@@ -134,10 +174,10 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
         const txs: MetaTransaction[] = []
         const vestings: { vestingHash: string, vesting: Vesting }[] = []
 
-        const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)      
+        const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
         if (taskArgs.transferTokens) {
             const tokenAddress = taskArgs.tokenAddress || await vestingPool.token()
-            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
+            const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
             const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
             let tokenToTransfer = requiredTokens;
             if (!taskArgs.forceFullTokenTransfer) {
@@ -151,7 +191,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
             }
         }
         for (const input of inputs) {
-            const vestingOwner = input.owner || taskArgs.defaultOwner 
+            const vestingOwner = input.owner || taskArgs.defaultOwner
             let vestingTarget = vestingOwner
             if (taskArgs.createSafes) {
                 const singleton = await safeSingleton(hre)
@@ -164,7 +204,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 const data = factory.interface.encodeFunctionData("createProxyWithNonce", [singleton.address, setupData, input.nonce])
                 txs.push({ to: factory.address, data, operation: 0, value: "0" })
                 vestingTarget = await calculateProxyAddress(factory, singleton.address, setupData, input.nonce)
-                if (input.expectedSafe !== undefined && input.expectedSafe !== vestingTarget) 
+                if (input.expectedSafe !== undefined && input.expectedSafe !== vestingTarget)
                     throw Error(`Unexpected vesting target Safe! Expected ${input.expectedSafe} got ${vestingTarget}`)
             }
             /*
@@ -192,7 +232,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 amount: input.amount
             }
             const chainId = (await hre.ethers.provider.getNetwork()).chainId
-            vestings.push({ vestingHash: calculateVestingHash(vestingPool, vesting, chainId), vesting})
+            vestings.push({ vestingHash: calculateVestingHash(vestingPool, vesting, chainId), vesting })
             txs.push({ to: vestingPool.address, data: vestingData, operation: 0, value: "0" })
         }
 
