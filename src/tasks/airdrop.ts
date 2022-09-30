@@ -4,11 +4,11 @@ import { task, types } from "hardhat/config";
 import { BigNumber, Contract, ethers } from "ethers";
 import { AddressZero } from "@ethersproject/constants";
 import { nameToAddress } from "../utils/tokenConfig";
-import { calculateRequiredTokens, compatHandler, getDeployerAddress, multiSendCallOnlyLib, prepareSalt, proxyFactory, readCsv, safeSingleton, writeTxBuilderJson } from "./task_utils";
+import { calculateRequiredTokens, compatHandler, getDeployerAddress, multiSendCallOnlyLib, prepareSalt, proxyFactory, readCsv, safeSingleton, writeJson, writeTxBuilderJson } from "./task_utils";
 import { calculateProxyAddress, encodeMultiSend, MetaTransaction } from "@gnosis.pm/safe-contracts";
 import { calculateVestingHash } from "../utils/hash";
 import { Vesting } from "../utils/types";
-import { generateRoot } from "../utils/proof";
+import { extractProof, generateFullTree, generateProof, generateRoot } from "../utils/proof";
 
 task("airdrop_info", "Prints vesting details")
     .addPositionalParam("airdrop", "Airdrop which should be queried", "", types.string)
@@ -25,18 +25,19 @@ task("airdrop_info", "Prints vesting details")
     });
 
 task("generate_airdrop_deployment_tx", "Prints deployment transaction details")
+    .addFlag("quiet", "Indicate if the information should be printed")
     .addParam("salt", "Salt", "", types.string)
     .addParam("manager", "Manager that is responsible for the airdrop", nameToAddress("Safe Foundation"), types.string, true)
     .addParam("token", "Token that should be airdropped", nameToAddress("Safe Token"), types.string, true)
     .addParam("redeemDeadline", "Date until which the airdrop can be redeemed", "2026-06-08", types.string, true)
     .setAction(async (taskArgs, hre) => {
         const deployerAddress = await getDeployerAddress(hre);
-        console.log({deployerAddress})
+        console.log({ deployerAddress })
         if (!deployerAddress) throw Error("No deployer specified")
         const artifact = await hre.artifacts.readArtifact("Airdrop")
         const contractFactory = new ethers.ContractFactory(artifact.abi, artifact.bytecode)
         const redeemDeadline = Math.floor(Date.parse(taskArgs.redeemDeadline) / 1000)
-        console.log({redeemDeadline})
+        console.log({ redeemDeadline })
         const deploymentCode = contractFactory.getDeployTransaction(taskArgs.token, taskArgs.manager, redeemDeadline).data
         if (!deploymentCode) throw Error("Could not generate deployment code")
         const encodedSalt = ethers.utils.defaultAbiCoder.encode(["bytes32"], [prepareSalt(taskArgs.salt)])
@@ -47,8 +48,10 @@ task("generate_airdrop_deployment_tx", "Prints deployment transaction details")
         )
         const deploymentData = encodedSalt + deploymentCode.toString().slice(2)
         console.log("Expected target address", targetAddress)
-        console.log("Transaction target", deployerAddress)
-        console.log("Transaction data", deploymentData)
+        if (!taskArgs.quiet) {
+            console.log("Transaction target", deployerAddress)
+            console.log("Transaction data", deploymentData)
+        }
         return {
             expectedAddress: targetAddress,
             deployer: deployerAddress,
@@ -59,6 +62,7 @@ task("generate_airdrop_deployment_tx", "Prints deployment transaction details")
 task("build_airdrop_init_tx", "Creates a multisend transaction to assign multiple vestings based on a CSV")
     .addFlag("deploy", "Indicate whether the airdrop should be deployed as part of this command")
     .addFlag("transferTokens", "Indicate whether the multisend should include the transfer of the required tokens")
+    .addFlag("generateProofs", "Indicate whether all proofs should be generated")
     .addPositionalParam("csv", "CSV file with the information for the accounts that should receive an aidrop", undefined, types.inputFile)
     .addParam("airdrop", "Address of the airdrop (optional if --deploy is used)", "", types.string, true)
     .addParam("defaultCurve", "Curve that should be used if not defined in CSV", "0", types.string, true)
@@ -80,12 +84,13 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
                 salt: taskArgs.salt,
                 manager: taskArgs.manager,
                 token: taskArgs.token,
-                redeemDeadline: taskArgs.redeemDeadline
+                redeemDeadline: taskArgs.redeemDeadline,
+                quiet: !!taskArgs.export
             })
             txs.push({ to: deploymentTx.deployer, data: deploymentTx.data, operation: 0, value: "0" })
             if (taskArgs.airdrop && taskArgs.airdrop != deploymentTx.expectedAddress)
                 throw Error(`Unexpected airdrop address! Expected ${taskArgs.airdrop} got ${deploymentTx.expectedAddress}`)
-                taskArgs.airdrop = deploymentTx.expectedAddress
+            taskArgs.airdrop = deploymentTx.expectedAddress
         }
         if (!taskArgs.airdrop) throw Error("No airdrop specified")
 
@@ -103,9 +108,12 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
             const tokenAddress = taskArgs.token || await airdrop.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
             const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
+            console.log(inputs.length, "vestings")
+            console.log("Required tokens", requiredTokens.toString())
             const transferData = token.interface.encodeFunctionData("transfer", [airdrop.address, requiredTokens])
             txs.push({ to: token.address, data: transferData, operation: 0, value: "0" })
         }
+        const chainId = (await hre.ethers.provider.getNetwork()).chainId
         for (const input of inputs) {
             const vestingOwner = input.owner || taskArgs.defaultOwner
             const vesting = {
@@ -113,17 +121,28 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
                 curveType: input.curveType || taskArgs.defaultCurve,
                 managed: false,
                 durationWeeks: input.duration || taskArgs.defaultDuration,
-                startDate:  Math.floor(Date.parse(input.startDate || taskArgs.defaultStartDate) / 1000),
+                startDate: Math.floor(Date.parse(input.startDate || taskArgs.defaultStartDate) / 1000),
                 amount: input.amount
             }
-            console.log({vesting})
-            const chainId = (await hre.ethers.provider.getNetwork()).chainId
             const vestingHash = calculateVestingHash(airdrop, vesting, chainId)
             merkleLeaves.push(vestingHash)
             vestings.push({ vestingHash, vesting })
         }
+        console.log("Merkle leaves", merkleLeaves.length)
         const root = generateRoot(merkleLeaves)
         console.log(`Merkle root: ${root}`)
+        if (taskArgs.generateProofs) {
+            console.log(`Generating Full Tree`)
+            const fullTree = generateFullTree(merkleLeaves)
+            console.log(`Generating Proofs`)
+            for (const vesting of vestings) {
+                writeJson(`output/proofs/${vesting.vesting.account}.json`, {
+                    vesting: vesting.vesting,
+                    proof: extractProof(vesting.vestingHash, fullTree)
+                })
+            }
+            console.log(`Generated all Proofs`)
+        }
         const initData = airdrop.interface.encodeFunctionData("initializeRoot", [root])
         txs.push({ to: airdrop.address, data: initData, operation: 0, value: "0" })
 
