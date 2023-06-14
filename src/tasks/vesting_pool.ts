@@ -157,6 +157,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
     .addParam("defaultDuration", "Duration in weeks that should be used if not defined in CSV", "", types.string, true)
     .addParam("token", "Token address that should be used for transfers (by default it tries to query this from the vesting pool)", "", types.string, true)
     .addParam("tokenAmount", "Token amount that should be be transferred to vesting pool (by default it the required amount for the vestings to be created is used)", "", types.string, true)
+    .addParam("decimals", "Specifies by how many decimals the amount in the csv should be offset (by default it is assumed that token atoms is used)", 0, types.int, true)
     .addParam("export", "If specified instead of printing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
     .setAction(async (taskArgs, hre) => {
         if (!taskArgs.pool) throw Error("No vesting pool specified")
@@ -178,7 +179,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
         if (taskArgs.transferTokens) {
             const tokenAddress = taskArgs.token || await vestingPool.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
-            const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
+            const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs, taskArgs.decimals)
             let tokenToTransfer = requiredTokens;
             if (!taskArgs.forceFullTokenTransfer) {
                 const availableTokens = await vestingPool.tokensAvailableForVesting()
@@ -207,6 +208,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 if (input.expectedSafe !== undefined && input.expectedSafe !== vestingTarget)
                     throw Error(`Unexpected vesting target Safe! Expected ${input.expectedSafe} got ${vestingTarget}`)
             }
+            const vestingAmount = ethers.utils.parseUnits(input.amount, taskArgs.decimals)
             /*
             address account,
             uint8 curveType,
@@ -221,7 +223,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 input.managed !== undefined ? input.managed : taskArgs.defaultManaged,
                 input.duration || taskArgs.defaultDuration,
                 input.startDate || taskArgs.defaultStartDate,
-                input.amount
+                vestingAmount
             ])
             const vesting = {
                 account: vestingTarget,
@@ -229,7 +231,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
                 managed: input.managed !== undefined ? input.managed : taskArgs.defaultManaged,
                 durationWeeks: input.duration || taskArgs.defaultDuration,
                 startDate: input.startDate || taskArgs.defaultStartDate,
-                amount: input.amount
+                amount: vestingAmount
             }
             const chainId = (await hre.ethers.provider.getNetwork()).chainId
             vestings.push({ vestingHash: calculateVestingHash(vestingPool, vesting, chainId), vesting })
