@@ -136,7 +136,7 @@ task("build_add_vestings_tx", "Creates a multisend transaction to assign multipl
 
         const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)      
         if (taskArgs.transferTokens) {
-            const tokenAddress = taskArgs.tokenAddress || await vestingPool.token()
+            const tokenAddress = taskArgs.token || await vestingPool.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress) 
             const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
             let tokenToTransfer = requiredTokens;
