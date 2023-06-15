@@ -74,6 +74,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
     .addParam("salt", "Salt", "", types.string)
     .addParam("manager", "Manager that is responsible for the airdrop", nameToAddress("Safe Foundation"), types.string, true)
     .addParam("redeemDeadline", "Date until which the airdrop can be redeemed", "2026-06-08", types.string, true)
+    .addParam("decimals", "Specifies by how many decimals the amount in the csv should be offset (by default it is assumed that token atoms is used)", 0, types.int, true)
     .setAction(async (taskArgs, hre) => {
         const txs: MetaTransaction[] = []
         const merkleLeaves: string[] = []
@@ -107,7 +108,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
         if (taskArgs.transferTokens) {
             const tokenAddress = taskArgs.token || await airdrop.token()
             const token = await hre.ethers.getContractAt("SafeToken", tokenAddress)
-            const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs)
+            const requiredTokens = taskArgs.tokenAmount !== "" ? BigNumber.from(taskArgs.tokenAmount) : calculateRequiredTokens(inputs, taskArgs.decimals)
             console.log(inputs.length, "vestings")
             console.log("Required tokens", requiredTokens.toString())
             const transferData = token.interface.encodeFunctionData("transfer", [airdrop.address, requiredTokens])
@@ -115,6 +116,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
         }
         const chainId = (await hre.ethers.provider.getNetwork()).chainId
         for (const input of inputs) {
+            const vestingAmount = ethers.utils.parseUnits(input.amount, taskArgs.decimals)
             const vestingOwner = input.owner || taskArgs.defaultOwner
             const vesting = {
                 account: vestingOwner,
@@ -122,7 +124,7 @@ task("build_airdrop_init_tx", "Creates a multisend transaction to assign multipl
                 managed: false,
                 durationWeeks: input.duration || taskArgs.defaultDuration,
                 startDate: Math.floor(Date.parse(input.startDate || taskArgs.defaultStartDate) / 1000),
-                amount: input.amount
+                amount: vestingAmount
             }
             const vestingHash = calculateVestingHash(airdrop, vesting, chainId)
             merkleLeaves.push(vestingHash)
