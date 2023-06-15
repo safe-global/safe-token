@@ -109,7 +109,7 @@ task("list_vestings", "Prints all vesting details")
         for (const event of addedVestingEvents) {
             const vestingId = event.args?.id
             if (!vestingId) throw Error("Vesting ID missing in event")
-            const vesting = await loadVestingDetails(vestingPool, vestingId, { decimals, symbol })
+            const vesting = await loadVestingDetails(vestingPool, vestingId, { decimals, symbol }, !!output)
             if (output) {
                 const startDate = new Date(vesting.startDate * 1000)
                 output.write(`${vestingId},${vesting.account},${vesting.amount},${startDate.toISOString()},${vesting.durationWeeks}\n`)
