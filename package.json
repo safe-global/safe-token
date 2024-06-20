@@ -2,7 +2,7 @@
   "name": "safe-token",
   "version": "1.0.0",
   "description": "Repository for Safe token related contracts",
-  "homepage": "https://www.gnosis-safe.io",
+  "homepage": "https://www.safe.global",
   "license": "GPL-3.0",
   "files": [
     "contracts",

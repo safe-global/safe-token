@@ -77,10 +77,10 @@ export const getDeployerAddress = async (hre: HRE): Promise<string | undefined> 
     return getter.chainId?.factory
 }
 
-export const calculateRequiredTokens = (inputs: { amount: string }[]): BigNumber => {
+export const calculateRequiredTokens = (inputs: { amount: string }[], decimals: number = 0): BigNumber => {
     let sum = BigNumber.from(0)
     for(const input of inputs) {
-        sum = sum.add(BigNumber.from(input.amount))
+        sum = sum.add(ethers.utils.parseUnits(input.amount, decimals))
     }
     return sum
 }
