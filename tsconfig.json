@@ -24,7 +24,7 @@
     "node_modules"
   ],
   "include": [
-    "./src/index.ts",
-    "./types"
+    "./types",
+    "./src"
   ]
 }

@@ -1,14 +1,12 @@
 {
-  "name": "safe-token",
+  "name": "@safe-global/safe-token",
   "version": "1.0.0",
   "description": "Repository for Safe token related contracts",
-  "homepage": "https://www.gnosis-safe.io",
-  "license": "GPL-3.0",
+  "homepage": "https://www.safe.global",
+  "license": "LGPL-3.0",
   "files": [
     "contracts",
     "dist",
-    "src",
-    "test",
     "build"
   ],
   "scripts": {
