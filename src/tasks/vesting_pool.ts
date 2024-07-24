@@ -86,7 +86,7 @@ task("show_vestings", "Prints vesting details")
 
 task("list_vestings", "Prints all vesting details")
     .addParam("pool", "Vesting pool which should be queried", nameToAddress("Investor Vestings"), types.string, true)
-    .addParam("export", "If specified instead of printing the data will be exported as a json file for the transaction builder", undefined, types.string, true)
+    .addParam("export", "If specified instead of printing the data will be exported as a csv file for the transaction builder", undefined, types.string, true)
     .setAction(async (taskArgs, hre) => {
         const vestingPool = await hre.ethers.getContractAt("VestingPool", taskArgs.pool)
         const addedVestingEvents = await vestingPool.queryFilter(vestingPool.filters.AddedVesting(), "earliest", "latest")
@@ -109,7 +109,7 @@ task("list_vestings", "Prints all vesting details")
         for (const event of addedVestingEvents) {
             const vestingId = event.args?.id
             if (!vestingId) throw Error("Vesting ID missing in event")
-            const vesting = await loadVestingDetails(vestingPool, vestingId, { decimals, symbol })
+            const vesting = await loadVestingDetails(vestingPool, vestingId, { decimals, symbol }, !!output)
             if (output) {
                 const startDate = new Date(vesting.startDate * 1000)
                 output.write(`${vestingId},${vesting.account},${vesting.amount},${startDate.toISOString()},${vesting.durationWeeks}\n`)
