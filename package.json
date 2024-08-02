@@ -2,7 +2,7 @@
   "name": "@safe-global/safe-token",
   "version": "1.0.0",
   "description": "Repository for Safe token related contracts",
-  "homepage": "https://www.safe.global",
+  "homepage": "https://safe.global",
   "license": "LGPL-3.0",
   "files": [
     "contracts",
