@@ -1,15 +1,12 @@
 {
-  "name": "safe-token",
+  "name": "@safe-global/safe-token",
   "version": "1.0.0",
   "description": "Repository for Safe token related contracts",
-  "homepage": "https://www.safe.global",
-  "license": "GPL-3.0",
+  "homepage": "https://safe.global",
+  "license": "LGPL-3.0-only",
   "files": [
     "contracts",
-    "dist",
-    "src",
-    "test",
-    "build"
+    "build/artifacts"
   ],
   "scripts": {
     "build": "hardhat compile",
