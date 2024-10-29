@@ -8,7 +8,10 @@ Safe Token Contracts
 - [Airdrop](./docs/airdrop.md)
 
 ### Audits
+- [G0 Group Audit of the Token contract](./docs/g0_audit_token_contract.pdf)
+- [G0 Group Audit of the VestingPool contract](./docs/g0_audit_vesting_contract.pdf)
 - [Ackee Blockchain Audit of the VestingPool contract](./docs/ackee_audit_vesting_contract.pdf)
+- [Ackee Blockchain Audit of the Airdrop contract](./docs/ackee_audit_airdrop_contract.pdf)
 
 Usage
 -----
