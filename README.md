@@ -64,7 +64,7 @@ Note: Address will vary if contract code is changed or a different Solidity vers
 #### Disable Replay protection (EIP-155)
 
 By default the deployment process uses the [Safe singleton factory](https://github.com/gnosis/safe-singleton-factory) for deployment. If 
-Some networks require replay protection. If replay protection is not required it is possible to use a presigned transaction without replay protection to deploy the comunity factory (see https://github.com/Arachnid/deterministic-deployment-proxy). To enable this the `USE_COMMUNITY_FACTORY` env var has to be set to `true` (see `.env.sample`).
+Some networks require replay protection. If replay protection is not required it is possible to use a presigned transaction without replay protection to deploy the community factory (see https://github.com/Arachnid/deterministic-deployment-proxy). To enable this the `USE_COMMUNITY_FACTORY` env var has to be set to `true` (see `.env.sample`).
 
 Note: This will result in different addresses compared to the default deployment process.
 
